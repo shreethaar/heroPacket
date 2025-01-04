@@ -1,40 +1,43 @@
-#import pyshark
+#import pyshark  # Commented out as it's not currently used
 from scapy.all import rdpcap
+from collections import defaultdict
 import datetime
 
 class pcap_parser:
-    def __init__(self,pcap_file):
-        self.pcap_file=pcap_file
-        self.packets=None
-        self.stats=defaultdict(int)
-
+    def __init__(self, pcap_file):
+        self.pcap_file = pcap_file
+        self.packets = None
+        self.stats = defaultdict(int)
+        
     def read_pcap(self):
         try:
             print(f"PCAP analyzing in progress: {self.pcap_file}") #TODO: update with progress bar
-            self.packets=rdpcap(self.pcap_file)
+            self.packets = rdpcap(self.pcap_file)
             return True
         except Exception as e:
             print(f"PCAP failed to process: {str(e)}")
             return False
-
+            
     def basic_stats(self):
         if not self.packets:
             return None
-        stats={
-                'total_packets':len(self.packets),
-                'start_time':datetime.datetime.fromtimestamp(float(self.packets[0].time)),
-            'end_time':datetime.datetime.fromtimestamp(float(self.packets[-1].time)),
-            'protocols':defaultdict(int)
+            
+        stats = {
+            'total_packets': len(self.packets),
+            'start_time': datetime.datetime.fromtimestamp(float(self.packets[0].time)),
+            'end_time': datetime.datetime.fromtimestamp(float(self.packets[-1].time)),
+            'protocols': defaultdict(int)
         }
-
+        
         for packet in self.packets:
             if packet.haslayer('IP'):
-                stats['protocols'][packet['IP'].proto]+=1
+                stats['protocols'][packet['IP'].proto] += 1
             if packet.haslayer('Ether'):
-                stats['protocols'][packet]['Ether'].type]+=1
+                stats['protocols'][packet['Ether'].type] += 1
+                
         return stats # TODO: option to print out packet that either has IP-based protocols or Ether-based protocol, layer 4 would be the best option here
-
-    def packet_summary(self,packet_index):
+        
+    def packet_summary(self, packet_index):
         if not self.packets or packet_index >= len(self.packets):
             return None
             
@@ -44,18 +47,17 @@ class pcap_parser:
             'length': len(packet),
             'layers': []
         }
-
+        
         while packet:
             summary['layers'].append(packet.name)
             packet = packet.payload if packet.payload else None
             
         return summary
 
-
 def main():
-    parser=pcap_parser("test.pcap")
+    parser = pcap_parser("test.pcap")
     if parser.read_pcap():
-        stats=parser.basic_stats()
+        stats = parser.basic_stats()
         if stats:
             print("\nBasic Statistics:")
             print(f"Total Packets: {stats['total_packets']}")
@@ -64,11 +66,15 @@ def main():
             print("\nProtocol Distribution:")
             for proto, count in stats['protocols'].items():
                 print(f"Protocol {proto}: {count} packets")
+            
+            # Fixed the packet summary loop
+            for i in range(len(parser.packets)):  # Changed 'packet' to 'parser.packets'
+                packet_info = parser.packet_summary(i)  
+                if packet_info:  # Added check for None
+                    print(f"\nPacket {i} Summary:")
+                    print(f"Time: {packet_info['time']}")
+                    print(f"Length: {packet_info['length']} bytes")
+                    print(f"Layers: {' -> '.join(packet_info['layers'])}")
 
-            for i in range(len(packet)) {
-                    packets=parser.packet_summary(i):
-                    print("\nFirst Packet Summary:")
-                    print(f"Time: {first_packet['time']}")
-                    print(f"Length: {first_packet['length']} bytes")
-                    print(f"Layers: {' -> '.join(first_packet['layers'])}")
-
+if __name__ == "__main__":
+    main()
