@@ -2,10 +2,9 @@ package main
 
 import (
     "flag"
-    "fmt"
-    "os"
+ //   "fmt"
     "strings"
- //   "path"
+    "log"
 )
 
 /*
@@ -20,23 +19,26 @@ Handling user input
 - Provide a file input (using os and pass *File pointer) with -r flags 
 - Validate extension of .pcap,.pcapng or .cap
 - Trial one: print success
+- using log err for err handling since return strings
+- Trial two: print filename 
+- using flag are arguments 
 */
 
 
-func handleInput() {
+func handleInput() string {
     pcapfile:=flag.String("r","","Path to a PCAP file (.pcap, .pcapng, .cap)")
     flag.Parse()
 
     if*pcapfile=="" {
-        fmt.Println("Usage: go run . -r <pcapfile>")
-        return
+        log.Fatal("Usage: go run . -r <pcapfile>")
+
     }
 
-    if len(os.Args) < 2 {
-        fmt.Println("Please enter a PCAP file path.")
-        return 
-    }
     /*
+    if len(os.Args) < 2 {
+        log.Fatal("Please enter a PCAP file path.")
+        return ""
+    }
     pcapfile := os.Args[1]
     if valid(pcapfile) {
         fmt.Println("Valid PCAP File:",pcapfile)
@@ -46,10 +48,11 @@ func handleInput() {
     */
 
     if !valid(*pcapfile) {
-        fmt.Println("Invalid PCAP File. Please provide a .pcap, .pcapng, or .cap file.")
-        return
+        log.Fatal("Invalid PCAP File. Please provide a .pcap, .pcapng, or .cap file.")
+        return ""
     }
-    fmt.Println("Valid PCAP file: ",*pcapfile)
+    //fmt.Println("Valid PCAP file: ",*pcapfile)
+    return *pcapfile
 }
     
 func valid(filename string) bool {
