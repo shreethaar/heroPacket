@@ -27,6 +27,13 @@ func readerPcap(filePath string) {
     fmt.Println("Starting packet processing...")
     for packet := range packetSource.Packets() {
         localpcap.ProcessPacket(packet)
+        metadata,details:=localpcap.ExtractPacketInfo(packet) 
+        if details.NetworkLayer.Protocol=="UDP" {
+            fmt.Println(metadata)
+            if dnsInfo:=localpcap.ExtractDNSInfo(packet);dnsInfo!=nil {
+                fmt.Println("process dns info")
+                }
+            }
     }
     
     fmt.Println("\nPacket processing complete!")
