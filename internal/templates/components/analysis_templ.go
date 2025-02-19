@@ -7,10 +7,11 @@ package components
 
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
+import "heroPacket/internal/handlers"
+import "github.com/google/gopacket/pcap"
 
-import (
-	"heroPacket/internal/models"
-)
+
+
 
 func AnalysisStatus(job *handlers.AnalysisJob) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
