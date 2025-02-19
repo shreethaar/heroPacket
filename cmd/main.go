@@ -9,9 +9,6 @@ import (
 )
 
 func main() {
-    //result:=ProcessData("some data")
-    //fmt.Println(result)
-    //handleInput()
     pcap:=handleInput()
     if pcap == "" {
         log.Fatal("No valid PCAP File provided.")
