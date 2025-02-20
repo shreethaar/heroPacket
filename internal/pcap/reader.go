@@ -161,3 +161,7 @@ func determineConnectionState(tcpState TCPState, currentState string) string {
 	}
 	return currentState
 }
+
+func GetPacketStats() *PacketStats {
+    return &packetStats
+}

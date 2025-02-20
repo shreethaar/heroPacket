@@ -2,9 +2,11 @@ package components
 
 import (
     "heroPacket/internal/models"
+    "heroPacket/internal/pcap"
+    "strconv"
 )
 
-templ AnalysisStatus(job *handlers.AnalysisJob) {
+templ AnalysisStatus(job *models.AnalysisJob) {
     <div id="analysis-status" 
          class="analysis-status"
          hx-get={"/status/" + job.ID}
@@ -32,7 +34,7 @@ templ AnalysisStatus(job *handlers.AnalysisJob) {
     </div>
 }
 
-templ AnalysisResults(job *handlers.AnalysisJob) {
+templ AnalysisResults(job *models.AnalysisJob) {
     <div id="analysis-results" class="analysis-results">
         <div class="results-header">
             <h2>Analysis Results</h2>

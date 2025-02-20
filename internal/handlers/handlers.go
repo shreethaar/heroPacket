@@ -1,5 +1,3 @@
-// YOU FUCK HEAD, CHANGE THIS, YOU JUST COPY & PASTE, YOU LAZY FUCK
-
 package handlers
 
 import (
@@ -23,23 +21,8 @@ import (
     "heroPacket/internal/templates/layouts"
 )
 
-/*
-// AnalysisJob represents a PCAP analysis job
-type AnalysisJob struct {
-    ID            string
-    Filename      string
-    Status        string // "pending", "processing", "completed", "error"
-    ErrorMessage  string
-    StartTime     time.Time
-    EndTime       time.Time
-    PacketStats   *pcap.PacketStats
-    TotalPackets  int64
-}
-*/
-
-
 var (
-    jobs = make(map[string]*AnalysisJob)
+    jobs = make(map[string]*models.AnalysisJob)
     jobsMutex sync.RWMutex
 )
 
@@ -94,7 +77,7 @@ func UploadPCAP(w http.ResponseWriter, r *http.Request) {
 
     // Create new analysis job
     jobID := fmt.Sprintf("job_%d", timestamp)
-    job := &AnalysisJob{
+    job := &models.AnalysisJob{
         ID:        jobID,
         Filename:  filename,
         Status:    "pending",
@@ -117,53 +100,8 @@ func UploadPCAP(w http.ResponseWriter, r *http.Request) {
     }
 }
 
-// GetStatus returns the current status of an analysis job
-func GetStatus(w http.ResponseWriter, r *http.Request) {
-    jobID := chi.URLParam(r, "id")
-    
-    jobsMutex.RLock()
-    job, exists := jobs[jobID]
-    jobsMutex.RUnlock()
-    
-    if !exists {
-        http.Error(w, "Job not found", http.StatusNotFound)
-        return
-    }
-
-    err := components.AnalysisStatus(job).Render(context.Background(), w)
-    if err != nil {
-        http.Error(w, "Error rendering template", http.StatusInternalServerError)
-        return
-    }
-}
-
-// GetResults returns the analysis results for a completed job
-func GetResults(w http.ResponseWriter, r *http.Request) {
-    jobID := chi.URLParam(r, "id")
-    
-    jobsMutex.RLock()
-    job, exists := jobs[jobID]
-    jobsMutex.RUnlock()
-    
-    if !exists {
-        http.Error(w, "Job not found", http.StatusNotFound)
-        return
-    }
-
-    if job.Status != "completed" {
-        http.Error(w, "Analysis not completed", http.StatusBadRequest)
-        return
-    }
-
-    err := components.AnalysisResults(job).Render(context.Background(), w)
-    if err != nil {
-        http.Error(w, "Error rendering template", http.StatusInternalServerError)
-        return
-    }
-}
-
 // analyzeFile processes the uploaded PCAP file
-func analyzeFile(job *AnalysisJob, filepath string) {
+func analyzeFile(job *models.AnalysisJob, filepath string) {
     // Update job status
     jobsMutex.Lock()
     job.Status = "processing"
@@ -209,26 +147,4 @@ func analyzeFile(job *AnalysisJob, filepath string) {
         time.Sleep(time.Hour) // Keep file for 1 hour
         os.Remove(filepath)
     }()
-}
-
-// Cleanup removes old jobs periodically
-func StartCleanup() {
-    go func() {
-        for {
-            time.Sleep(time.Hour)
-            cleanup()
-        }
-    }()
-}
-
-func cleanup() {
-    threshold := time.Now().Add(-24 * time.Hour)
-    
-    jobsMutex.Lock()
-    for id, job := range jobs {
-        if !job.EndTime.IsZero() && job.EndTime.Before(threshold) {
-            delete(jobs, id)
-        }
-    }
-    jobsMutex.Unlock()
 }

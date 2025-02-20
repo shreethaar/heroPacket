@@ -7,13 +7,13 @@ package components
 
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
-import "heroPacket/internal/handlers"
-import "github.com/google/gopacket/pcap"
+import "strconv"
+import (
+	"heroPacket/internal/models"
+    "heroPacket/internal/pcap"
+)
 
-
-
-
-func AnalysisStatus(job *handlers.AnalysisJob) templ.Component {
+func AnalysisStatus(job *models.AnalysisJob) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -70,7 +70,7 @@ func AnalysisStatus(job *handlers.AnalysisJob) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(job.TotalPackets)
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.FormatInt(job.TotalPackets, 10))
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/components/analysis.templ`, Line: 16, Col: 50}
 			}
@@ -127,7 +127,7 @@ func AnalysisStatus(job *handlers.AnalysisJob) templ.Component {
 	})
 }
 
-func AnalysisResults(job *handlers.AnalysisJob) templ.Component {
+func AnalysisResults(job *models.AnalysisJob) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -166,7 +166,7 @@ func AnalysisResults(job *handlers.AnalysisJob) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var9 string
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(job.TotalPackets)
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.FormatInt(job.TotalPackets, 10))
 		if templ_7745c5c3_Err != nil {
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/components/analysis.templ`, Line: 40, Col: 47}
 		}
@@ -197,7 +197,7 @@ func AnalysisResults(job *handlers.AnalysisJob) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 string
-			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(length)
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(length))
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/components/analysis.templ`, Line: 50, Col: 41}
 			}
@@ -210,7 +210,7 @@ func AnalysisResults(job *handlers.AnalysisJob) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var12 string
-			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(count)
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(count))
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/components/analysis.templ`, Line: 51, Col: 36}
 			}
@@ -233,7 +233,7 @@ func AnalysisResults(job *handlers.AnalysisJob) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var13 string
-			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(etherType)
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(etherType))
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/components/analysis.templ`, Line: 63, Col: 44}
 			}
@@ -246,7 +246,7 @@ func AnalysisResults(job *handlers.AnalysisJob) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(count)
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(count))
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/components/analysis.templ`, Line: 64, Col: 40}
 			}
