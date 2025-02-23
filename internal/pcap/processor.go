@@ -1,24 +1,43 @@
 package pcap
 
 import (
-    "io"
-    "log"
-    "os"
+    "fmt"
+    "github.com/google/gopacket"
+    "github.com/google/gopacket/pcap"
 )
 
-func ProcessFile(filename string, file io.Reader) {
-    // Create a new file in the server
-    dst, err := os.Create("/tmp/" + filename)
+type PacketInfo struct {
+    Timestamp string `json:"timestamp"`
+    SourceIP  string `json:"source_ip"`  // Changed from SrcIP
+    DestIP    string `json:"dest_ip"`    // Changed from DstIP
+    Protocol  string `json:"protocol"`
+    Length    int    `json:"length"`     // Added Length field
+}
+
+func ProcessPCAP(filePath string) ([]PacketInfo, error) {
+    handle, err := pcap.OpenOffline(filePath)
     if err != nil {
-        log.Fatal(err)
+        return nil, fmt.Errorf("error opening pcap file: %v", err)
     }
-    defer dst.Close()
+    defer handle.Close()
 
-    // Copy the uploaded file's content to the new file
-    if _, err := io.Copy(dst, file); err != nil {
-        log.Fatal(err)
+    packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+    var packets []PacketInfo
+
+    for packet := range packetSource.Packets() {
+        networkLayer := packet.NetworkLayer()
+        transportLayer := packet.TransportLayer()
+        
+        if networkLayer != nil && transportLayer != nil {
+            packets = append(packets, PacketInfo{
+                Timestamp: packet.Metadata().Timestamp.String(),
+                SourceIP:  networkLayer.NetworkFlow().Src().String(),
+                DestIP:    networkLayer.NetworkFlow().Dst().String(),
+                Protocol:  transportLayer.LayerType().String(),
+                Length:    len(packet.Data()),
+            })
+        }
     }
-
-    // Here you can add more logic to process the PCAP file
-    log.Printf("File %s uploaded and saved", filename)
+    
+    return packets, nil
 }

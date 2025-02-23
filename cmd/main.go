@@ -18,6 +18,7 @@ func main() {
     userHandler:=handler.UserHandler{}
     app.GET("/",userHandler.HandleHomePage)
     app.GET("/upload",userHandler.HandleUploadPage)
+    app.POST("/upload",userHandler.HandleUploadPage)
     app.Logger.Fatal(app.Start(":1323"))
 
 }

@@ -1,24 +1,51 @@
 package upload
-templ Show() {
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>heroPacket</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-</head>
-<body class="bg-gradient-to-r from-gray-800 to-gray-900 min-h-screen flex flex-col items-center justify-center text-gray-200">
-  <div class="bg-gray-700 shadow-2xl rounded-2xl p-10 w-full max-w-2xl border border-gray-600">
-    <h1 class="text-4xl font-extrabold text-center text-teal-400 mb-8">HeroPacket</h1>
-    <form id="pcap-upload-form" class="space-y-6">
-      <div>
-        <label for="pcap-file" class="block text-lg font-medium text-teal-300">Select PCAP File</label>
-        <input type="file" id="pcap-file" name="pcap-file" accept=".pcap,.pcapng" class="mt-2 block w-full border border-gray-500 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 p-3 bg-gray-800 text-gray-200">
-      </div>
-      <div class="flex justify-center">
-        <button type="submit" class="bg-teal-500 text-white px-8 py-3 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400">Upload</button>
-      </div>
-    </form>
-    <div id="upload-status" class="mt-6 text-center text-gray-400">No file uploaded yet.</div>
-  </div>
-</body>
+
+templ Show(packets []string, message string) {
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>HeroPacket</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    </head>
+    <body class="bg-gradient-to-r from-gray-800 to-gray-900 min-h-screen flex flex-col items-center justify-center text-gray-200">
+        <div class="bg-gray-700 shadow-2xl rounded-2xl p-10 w-full max-w-2xl border border-gray-600">
+            <h1 class="text-4xl font-extrabold text-center text-teal-400 mb-8">HeroPacket</h1>
+            
+            <form id="pcap-upload-form" method="POST" enctype="multipart/form-data" action="/upload" class="space-y-6">
+                <div>
+                    <label for="pcap-file" class="block text-lg font-medium text-teal-300">Select PCAP File</label>
+                    <input type="file" id="pcap-file" name="pcap-file" accept=".pcap,.pcapng" class="mt-2 block w-full border border-gray-500 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 p-3 bg-gray-800 text-gray-200"/>
+                </div>
+                <div class="flex justify-center">
+                    <button type="submit" class="bg-teal-500 text-white px-8 py-3 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400">Upload</button>
+                </div>
+            </form>
+            
+            if message != "" {
+                <div class="mt-4 text-center">
+                    if message == "Upload successful!" {
+                        <p class="text-green-400">{ message }</p>
+                    } else {
+                        <p class="text-red-400">{ message }</p>
+                    }
+                </div>
+            }
+
+            <div id="upload-status" class="mt-6 text-center text-gray-400">
+                if packets == nil || len(packets) == 0 {
+                    No file uploaded yet.
+                }
+            </div>
+            if packets != nil && len(packets) > 0 {
+                <div class="mt-8">
+                    <h2 class="text-2xl font-bold text-teal-400 mb-4">Processed Packets:</h2>
+                    <ul class="bg-gray-800 p-4 rounded-lg space-y-2 max-h-60 overflow-y-auto">
+                        for _, packet := range packets {
+                            <li class="text-gray-300">{ packet }</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </div>
+    </body>
 }
