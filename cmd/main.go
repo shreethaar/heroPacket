@@ -16,7 +16,8 @@ func main() {
     //app.GET("/user",handler.)
 
     userHandler:=handler.UserHandler{}
-    app.GET("/user",userHandler.HandleUserShow)
+    app.GET("/",userHandler.HandleHomePage)
+    app.GET("/upload",userHandler.HandleUploadPage)
     app.Logger.Fatal(app.Start(":1323"))
 
 }
