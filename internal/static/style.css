@@ -1,12 +1,18 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
+.loading {
+    animation: spin 1s linear infinite;
 }
 
-h1 {
-    color: #333;
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
-form {
-    margin-top: 20px;
+.analysis-results {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.chart-container {
+    min-height: 400px;
 }
