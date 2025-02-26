@@ -145,14 +145,14 @@ func extractDetails(packet gopacket.Packet) *PacketDetails {
     
     return details
 }
-func extractDNSInfo(packet gopacket.Packet) *DNSInfo {
+func extractDNSInfo(packet gopacket.Packet) *models.DNSInfo {
     dnsLayer := packet.Layer(layers.LayerTypeDNS)
     if dnsLayer == nil {
         return nil
     }
 
     dns, _ := dnsLayer.(*layers.DNS)
-    return &DNSInfo{
+    return &models.DNSInfo{
         QR:           dns.QR,
         OpCode:       dns.OpCode.String(),
         Questions:    extractDNSQuestions(dns),
