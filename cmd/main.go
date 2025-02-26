@@ -3,6 +3,7 @@ package main
 import (
     "github.com/labstack/echo/v4"
     "heroPacket/handler"
+    "heroPacket/internal/middleware"
 )
 
 
@@ -18,7 +19,9 @@ func main() {
     userHandler:=handler.UserHandler{}
     app.GET("/",userHandler.HandleHomePage)
     app.GET("/upload",userHandler.HandleUploadPage)
-    app.POST("/upload",userHandler.HandleUploadPage)
+    app.POST("/upload",userHandler.HandleUploadPage,middleware.ValidateAndSavePCAP)
+    app.GET("/analysis/protocol-chart/:sessionID", userHandler.ProtocolChart)
+    app.GET("/analysis/traffic-timeline/:sessionID", userHandler.TrafficTimeline)
     app.Logger.Fatal(app.Start(":1323"))
 
 }
