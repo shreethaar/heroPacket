@@ -6,11 +6,12 @@ import (
     "net/http"
     "sync"
     "time"
-
+    
     "github.com/google/uuid"
     "github.com/labstack/echo/v4"
     "heroPacket/internal/analysis"
     "heroPacket/internal/middleware"
+    "heroPacket/internal/models"  // Add this import
     "heroPacket/view/home"
     "heroPacket/view/upload"
 )
@@ -31,8 +32,13 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 }
 
 func (h *UserHandler) HandleUploadPage(c echo.Context) error {
+    // Get CSRF token from Echo context
+    csrfToken := c.Get("csrf").(string)
+
     if c.Request().Method == http.MethodGet {
-        return render(c, upload.Show(upload.ViewData{}))
+        return render(c, upload.Show(upload.ViewData{
+            CSRFToken: csrfToken,
+        }))
     }
 
     // Retrieve validated file
@@ -40,6 +46,7 @@ func (h *UserHandler) HandleUploadPage(c echo.Context) error {
     if !ok {
         return render(c, upload.Show(upload.ViewData{
             Error: "Failed to retrieve PCAP file",
+            CSRFToken: csrfToken,
         }))
     }
 
@@ -48,6 +55,7 @@ func (h *UserHandler) HandleUploadPage(c echo.Context) error {
     if err != nil {
         return render(c, upload.Show(upload.ViewData{
             Error: "PCAP processing failed: " + err.Error(),
+            CSRFToken: csrfToken,
         }))
     }
 
@@ -59,7 +67,7 @@ func (h *UserHandler) HandleUploadPage(c echo.Context) error {
     var wg sync.WaitGroup
     for _, packet := range packets {
         wg.Add(1)
-        go func(p models.Packet) {
+        go func(p models.Packet) {  // Changed pcap.Packet to models.Packet
             defer wg.Done()
             session.Process(p)
         }(packet)
@@ -81,10 +89,12 @@ func (h *UserHandler) HandleUploadPage(c echo.Context) error {
         TopProtocols: session.Protocols().Top(3),
         TrafficStats: session.TrafficStats(),
         Conversations: session.Conversations().Top(5),
+        CSRFToken:    csrfToken,  // Add CSRF token
     }
 
-    return render(c, upload.ShowResults(viewData))
+    return render(c, upload.Show(viewData))  // Changed from ShowResults to Show
 }
+
 // HTMX Handlers for visualizations
 func (h *UserHandler) ProtocolChart(c echo.Context) error {
     sessionID := c.Param("sessionID")

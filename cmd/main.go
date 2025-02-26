@@ -22,6 +22,9 @@ func main() {
     app.POST("/upload",userHandler.HandleUploadPage,middleware.ValidateAndSavePCAP)
     app.GET("/analysis/protocol-chart/:sessionID", userHandler.ProtocolChart)
     app.GET("/analysis/traffic-timeline/:sessionID", userHandler.TrafficTimeline)
+    app.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+    TokenLookup: "form:_csrf",
+}))
     app.Logger.Fatal(app.Start(":1323"))
 
 }

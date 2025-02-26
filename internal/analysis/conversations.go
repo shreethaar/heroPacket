@@ -6,16 +6,16 @@ import (
 )
 
 type ConversationTracker struct {
-    mu           sync.Mutex
+    mu            sync.Mutex
     Conversations map[string]*Conversation
 }
 
 type Conversation struct {
-    SourceIP      string
-    DestIP        string
-    Protocol      string
-    PacketCount   int
-    TotalBytes    int
+    SourceIP    string
+    DestIP      string
+    Protocol    string
+    PacketCount int
+    TotalBytes  int
 }
 
 func NewConversationTracker() *ConversationTracker {
@@ -24,17 +24,17 @@ func NewConversationTracker() *ConversationTracker {
     }
 }
 
-func (t *ConversationTracker) Process(packet models.Packet) {
+func (c *ConversationTracker) Process(packet models.Packet) {
     key := conversationKey(packet)
     
-    t.mu.Lock()
-    defer t.mu.Unlock()
+    c.mu.Lock()
+    defer c.mu.Unlock()
     
-    if conv, exists := t.Conversations[key]; exists {
+    if conv, exists := c.Conversations[key]; exists {
         conv.PacketCount++
         conv.TotalBytes += packet.Length
     } else {
-        t.Conversations[key] = &Conversation{
+        c.Conversations[key] = &Conversation{
             SourceIP:    packet.SourceIP,
             DestIP:      packet.DestIP,
             Protocol:    packet.Protocol,

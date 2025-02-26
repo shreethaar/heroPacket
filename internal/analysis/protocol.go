@@ -16,22 +16,11 @@ func NewProtocolAnalyzer() *ProtocolAnalyzer {
     }
 }
 
-func (a *ProtocolAnalyzer) Process(packet models.Packet) {
-    a.mu.Lock()
-    defer a.mu.Unlock()
+func (p *ProtocolAnalyzer) Process(packet models.Packet) {
+    p.mu.Lock()
+    defer p.mu.Unlock()
     
     if packet.Protocol != "" {
-        a.Protocols[packet.Protocol]++
+        p.Protocols[packet.Protocol]++
     }
-}
-
-func (a *ProtocolAnalyzer) Results() map[string]int {
-    a.mu.Lock()
-    defer a.mu.Unlock()
-    
-    results := make(map[string]int)
-    for k, v := range a.Protocols {
-        results[k] = v
-    }
-    return results
 }
