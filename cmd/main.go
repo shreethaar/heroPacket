@@ -1,40 +1,25 @@
 package main
 
 import (
-    "fmt"
-    "log"
-    localpcap"heroPacket/internal/pcap"
-    "github.com/google/gopacket"
-    "github.com/google/gopacket/pcap"
+    "github.com/labstack/echo/v4"
+    "heroPacket/handler"
 )
 
+
+
 func main() {
-    pcap:=handleInput()
-    if pcap == "" {
-        log.Fatal("No valid PCAP File provided.")
-    }
-    readerPcap(pcap)
+    app:=echo.New()
+    /*app.GET("/", func(c echo.Context) error {
+        return c.String(http.StatusOK,"Hello, world!")
+    })*/
+
+    //app.GET("/user",handler.)
+
+    userHandler:=handler.UserHandler{}
+    app.GET("/",userHandler.HandleHomePage)
+    app.GET("/upload",userHandler.HandleUploadPage)
+    app.POST("/upload",userHandler.HandleUploadPage)
+    app.Logger.Fatal(app.Start(":1323"))
+
 }
 
-func readerPcap(filePath string) {
-    fmt.Println("Processing PCAP file:", filePath)
-    handle, err := pcap.OpenOffline(filePath)
-    if err != nil {
-        log.Fatalf("Error opening PCAP: %v", err)
-    }
-    defer handle.Close()
-    packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-    fmt.Println("Starting packet processing...")
-    for packet := range packetSource.Packets() {
-        localpcap.ProcessPacket(packet)
-        metadata,details:=localpcap.ExtractPacketInfo(packet) 
-        if details.NetworkLayer.Protocol=="UDP" {
-            fmt.Println(metadata)
-            if dnsInfo:=localpcap.ExtractDNSInfo(packet);dnsInfo!=nil {
-                fmt.Println("process dns info")
-                }
-            }
-    }
-    
-    fmt.Println("\nPacket processing complete!")
-}
