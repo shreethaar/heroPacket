@@ -1,9 +1,11 @@
-package pcap
+package analysis
 
 import (
     "time"
     "github.com/google/gopacket"
     "github.com/google/gopacket/layers"
+    "github.com/google/gopacket/pcap"
+    "heroPacket/internal/models"
 )
 
 type PacketMetadata struct {
@@ -43,12 +45,44 @@ type PacketDetails struct {
 }
 
 
-func ExtractPacketInfo(packet gopacket.Packet) (*PacketMetadata, *PacketDetails) {
-    metadata := extractMetadata(packet)
-    details := extractDetails(packet)
-    return metadata, details
+type PacketProcessor interface {
+    Process(models.Packet)
 }
 
+
+func ExtractPackets(filePath string) ([]models.Packet, error) {
+    handle, err := pcap.OpenOffline(filePath)
+    if err != nil {
+        return nil, err
+    }
+    defer handle.Close()
+
+    source := gopacket.NewPacketSource(handle, handle.LinkType())
+    var packets []models.Packet
+
+    for packet := range source.Packets() {
+        packets = append(packets, extractPacketInfo(packet))
+    }
+
+    return packets, nil
+}
+
+func extractPacketInfo(packet gopacket.Packet) models.Packet {
+    metadata := extractMetadata(packet)
+    details := extractDetails(packet)
+    dnsInfo := extractDNSInfo(packet)
+
+    return models.Packet{
+        Timestamp:   metadata.Timestamp,
+        SourceIP:    details.NetworkLayer.Source,
+        DestIP:      details.NetworkLayer.Destination,
+        Protocol:    details.TransportLayer.Protocol,
+        Length:      int(details.NetworkLayer.Length),
+        SourcePort:  details.TransportLayer.SourcePort,
+        DestPort:    details.TransportLayer.DestPort,
+        DNS:         dnsInfo,
+    }
+}
 
 func extractMetadata(packet gopacket.Packet) *PacketMetadata {
     metadata := &PacketMetadata{
@@ -111,7 +145,7 @@ func extractDetails(packet gopacket.Packet) *PacketDetails {
     
     return details
 }
-func ExtractDNSInfo(packet gopacket.Packet) *DNSInfo {
+func extractDNSInfo(packet gopacket.Packet) *DNSInfo {
     dnsLayer := packet.Layer(layers.LayerTypeDNS)
     if dnsLayer == nil {
         return nil

@@ -1,9 +1,7 @@
 package analysis
 
 import (
-    "fmt"
     "github.com/wcharczuk/go-chart"
-    "heroPacket/internal/models"
     "net/http"
 )
 
