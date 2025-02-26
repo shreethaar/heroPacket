@@ -4,18 +4,30 @@ import (
     "strconv"
     "html"
     "time"
+    "fmt"
+    "heroPacket/view/layout"
     "heroPacket/internal/analysis"
 )
 
+type ViewData struct {
+    SessionID     string
+    PacketCount   int
+    TopProtocols  []analysis.ProtocolCount
+    TrafficStats  *analysis.TrafficStats
+    Conversations []*analysis.Conversation
+    Error         string
+    CSRFToken     string
+}
+
 templ Show(data ViewData) {
     @layout.Base("HeroPacket - Analysis") {
+        <!-- Wrap all content in this block -->
         <div class="container mx-auto max-w-6xl">
-            <!-- Header -->
+            <!-- Your existing header, form, and analysis content -->
             <header class="text-center mb-10">
                 <h1 class="text-5xl font-extrabold text-teal-400 mb-2">HeroPacket</h1>
                 <p class="text-lg text-gray-300">Upload and analyze your network traffic</p>
-            </header>
-            
+            </header>           
             <!-- Error Display -->
             if data.Error != "" {
                 <div class="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg mb-6">
