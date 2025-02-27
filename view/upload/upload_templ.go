@@ -59,19 +59,19 @@ func Show(data ViewData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"container mx-auto max-w-6xl\"><!-- Header --><header class=\"text-center mb-10\"><h1 class=\"text-5xl font-extrabold text-teal-400 mb-2\">HeroPacket</h1><p class=\"text-lg text-gray-300\">Upload and analyze your network traffic</p></header><!-- Error Display -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-gradient-to-r from-gray-800 to-gray-900 min-h-screen py-8\"><div class=\"container mx-auto max-w-6xl px-4\"><!-- Header --><div class=\"bg-gray-700 shadow-2xl rounded-2xl p-10 border border-gray-600 text-center mb-8\"><h1 class=\"text-5xl font-extrabold text-white mb-6\">HeroPacket</h1><p class=\"text-lg text-gray-300 mb-4\">Upload and analyze your network traffic</p></div><!-- Error Display -->")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if data.Error != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg mb-6\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"bg-red-900/50 border border-red-700 text-red-200 px-6 py-4 rounded-xl mb-6\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 32, Col: 17}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 34, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -82,38 +82,38 @@ func Show(data ViewData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<!-- Upload Form --><div class=\"bg-gray-700 shadow-xl rounded-xl p-8 border border-gray-600 mb-8\"><h2 class=\"text-2xl font-bold text-teal-400 mb-4\">Upload PCAP File</h2><form hx-post=\"/upload\" hx-encoding=\"multipart/form-data\"><input type=\"hidden\" name=\"_csrf\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<!-- Upload Form --><div class=\"bg-gray-700 shadow-2xl rounded-2xl p-8 border border-gray-600 mb-8\"><h2 class=\"text-2xl font-bold text-white mb-6\">Upload PCAP File</h2><form hx-post=\"/upload\" hx-encoding=\"multipart/form-data\"><input type=\"hidden\" name=\"_csrf\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.CSRFToken)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 39, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 42, Col: 62}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"><div class=\"flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4\"><input type=\"file\" name=\"pcap-file\" accept=\".pcap,.pcapng\" class=\"bg-gray-800 text-gray-200 px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400\"> <button type=\"submit\" class=\"bg-teal-500 text-white px-6 py-2 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400\">Analyze PCAP</button></div></form></div><!-- Analysis Results -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"><div class=\"flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4\"><input type=\"file\" name=\"pcap-file\" accept=\".pcap,.pcapng\" class=\"bg-gray-800 text-gray-200 px-6 py-3 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 flex-grow\"> <button type=\"submit\" class=\"bg-teal-500 text-white px-8 py-3 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400 transition-colors\">Analyze PCAP</button></div></form></div><!-- Analysis Results -->")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if data.SessionID != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"analysis-results space-y-6\"><!-- Summary Section --><div class=\"bg-gray-700 shadow-xl rounded-xl p-6 border border-gray-600\"><h2 class=\"text-2xl font-bold text-teal-400 mb-4\">Analysis Summary</h2><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><div class=\"bg-gray-800 rounded-lg p-4 border border-gray-600\"><div class=\"text-gray-400 mb-1\">Total Packets</div><div class=\"text-3xl font-bold text-teal-300\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"space-y-6\"><!-- Summary Section --><div class=\"bg-gray-700 shadow-2xl rounded-2xl p-8 border border-gray-600\"><h2 class=\"text-2xl font-bold text-white mb-6\">Analysis Summary</h2><div class=\"grid grid-cols-1 md:grid-cols-2 gap-6\"><div class=\"bg-gray-800/50 rounded-xl p-6 border border-gray-600\"><div class=\"text-gray-400 mb-2\">Total Packets</div><div class=\"text-3xl font-bold text-teal-300\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.PacketCount))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 66, Col: 41}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 70, Col: 42}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div><div class=\"bg-gray-800 rounded-lg p-4 border border-gray-600\"><div class=\"text-gray-400 mb-1\">Total Bytes</div><div class=\"text-3xl font-bold text-teal-300\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div><div class=\"bg-gray-800/50 rounded-xl p-6 border border-gray-600\"><div class=\"text-gray-400 mb-2\">Total Bytes</div><div class=\"text-3xl font-bold text-teal-300\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -121,7 +121,7 @@ func Show(data ViewData) templ.Component {
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(humanBytes(uint64(data.TrafficStats.TotalBytes)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 73, Col: 60}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 77, Col: 61}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -131,40 +131,40 @@ func Show(data ViewData) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs("0")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 75, Col: 15}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 79, Col: 16}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></div></div><div class=\"text-sm text-gray-400 mt-2\">Analyzed at: ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></div></div><div class=\"text-sm text-gray-400 mt-4\">Analyzed at: ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(time.Now().Format("2006-01-02 15:04:05"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 81, Col: 62}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 85, Col: 63}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div></div><!-- Protocol Distribution --><div class=\"bg-gray-700 shadow-xl rounded-xl p-6 border border-gray-600\"><h2 class=\"text-2xl font-bold text-teal-400 mb-4\">Protocol Distribution</h2><div hx-get=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div></div><!-- Protocol Distribution --><div class=\"bg-gray-700 shadow-2xl rounded-2xl p-8 border border-gray-600\"><h2 class=\"text-2xl font-bold text-white mb-6\">Protocol Distribution</h2><div hx-get=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/analysis/protocol-chart/%s", data.SessionID))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 88, Col: 74}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 93, Col: 75}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" hx-trigger=\"load\" class=\"w-full h-96 bg-gray-800 rounded-lg p-4 mb-4 flex items-center justify-center\" id=\"protocol-chart-container\"><div class=\"animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-400\"></div></div><div class=\"overflow-x-auto\"><table class=\"w-full text-left\"><thead><tr class=\"bg-gray-800\"><th class=\"px-4 py-2 rounded-tl-lg\">Protocol</th><th class=\"px-4 py-2\">Count</th><th class=\"px-4 py-2 rounded-tr-lg\">%</th></tr></thead> <tbody>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" hx-trigger=\"load\" class=\"w-full h-96 bg-gray-800/50 rounded-xl p-6 mb-6 flex items-center justify-center\" id=\"protocol-chart-container\"><div class=\"animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-400\"></div></div><div class=\"overflow-x-auto rounded-xl border border-gray-600\"><table class=\"w-full text-left\"><thead><tr class=\"bg-gray-800/50\"><th class=\"px-6 py-3\">Protocol</th><th class=\"px-6 py-3\">Count</th><th class=\"px-6 py-3\">%</th></tr></thead> <tbody>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -187,33 +187,33 @@ func Show(data ViewData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\"><td class=\"px-4 py-2 border-t border-gray-700\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\"><td class=\"px-6 py-3 border-t border-gray-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var12 string
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(proto.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 107, Col: 70}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 112, Col: 71}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</td><td class=\"px-4 py-2 border-t border-gray-700\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</td><td class=\"px-6 py-3 border-t border-gray-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var13 string
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(proto.Count))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 108, Col: 85}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 113, Col: 86}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</td><td class=\"px-4 py-2 border-t border-gray-700\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</td><td class=\"px-6 py-3 border-t border-gray-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -221,7 +221,7 @@ func Show(data ViewData) templ.Component {
 						var templ_7745c5c3_Var14 string
 						templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f%%", (float64(proto.Count)/float64(data.PacketCount))*100))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 111, Col: 90}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 116, Col: 91}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 						if templ_7745c5c3_Err != nil {
@@ -231,7 +231,7 @@ func Show(data ViewData) templ.Component {
 						var templ_7745c5c3_Var15 string
 						templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs("0.0%")
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 113, Col: 21}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 118, Col: 22}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 						if templ_7745c5c3_Err != nil {
@@ -243,7 +243,7 @@ func Show(data ViewData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</tbody></table></div></div><!-- Conversations --><div class=\"bg-gray-700 shadow-xl rounded-xl p-6 border border-gray-600\"><h2 class=\"text-2xl font-bold text-teal-400 mb-4\">Top Conversations</h2><div class=\"overflow-x-auto\"><table class=\"w-full text-left\"><thead><tr class=\"bg-gray-800\"><th class=\"px-4 py-2 rounded-tl-lg\">Source</th><th class=\"px-4 py-2\">Destination</th><th class=\"px-4 py-2\">Protocol</th><th class=\"px-4 py-2\">Packets</th><th class=\"px-4 py-2 rounded-tr-lg\">Bytes</th></tr></thead> <tbody>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</tbody></table></div></div><!-- Conversations --><div class=\"bg-gray-700 shadow-2xl rounded-2xl p-8 border border-gray-600\"><h2 class=\"text-2xl font-bold text-white mb-6\">Top Conversations</h2><div class=\"overflow-x-auto rounded-xl border border-gray-600\"><table class=\"w-full text-left\"><thead><tr class=\"bg-gray-800/50\"><th class=\"px-6 py-3\">Source</th><th class=\"px-6 py-3\">Destination</th><th class=\"px-6 py-3\">Protocol</th><th class=\"px-6 py-3\">Packets</th><th class=\"px-6 py-3\">Bytes</th></tr></thead> <tbody>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -266,66 +266,66 @@ func Show(data ViewData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\"><td class=\"px-4 py-2 border-t border-gray-700\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\"><td class=\"px-6 py-3 border-t border-gray-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(conv.SourceIP)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 139, Col: 73}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 145, Col: 74}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</td><td class=\"px-4 py-2 border-t border-gray-700\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</td><td class=\"px-6 py-3 border-t border-gray-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var19 string
 					templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(conv.DestIP)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 140, Col: 71}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 146, Col: 72}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</td><td class=\"px-4 py-2 border-t border-gray-700\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</td><td class=\"px-6 py-3 border-t border-gray-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var20 string
 					templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(conv.Protocol)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 141, Col: 73}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 147, Col: 74}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</td><td class=\"px-4 py-2 border-t border-gray-700\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</td><td class=\"px-6 py-3 border-t border-gray-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var21 string
 					templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(conv.PacketCount))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 142, Col: 90}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 148, Col: 91}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</td><td class=\"px-4 py-2 border-t border-gray-700\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</td><td class=\"px-6 py-3 border-t border-gray-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var22 string
 					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(humanBytes(uint64(conv.TotalBytes)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 143, Col: 95}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/upload/upload.templ`, Line: 149, Col: 96}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
@@ -341,7 +341,7 @@ func Show(data ViewData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<!-- Footer --><footer class=\"mt-10 text-center text-gray-400 text-sm\"><a href=\"/\" class=\"text-teal-400 hover:text-teal-300\">← Back to Home</a><p class=\"mt-2\">HeroPacket - Network Traffic Analysis Tool</p></footer></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<!-- Footer --><footer class=\"mt-10 text-center text-gray-400 text-sm\"><a href=\"/\" class=\"text-white hover:text-teal-300 transition-colors\">← Back to Home</a><p class=\"mt-2\">HeroPacket - Network Traffic Analysis Tool</p></footer></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -376,7 +376,7 @@ func nav() templ.Component {
 			templ_7745c5c3_Var23 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<nav class=\"bg-gray-800 p-4\"><div class=\"container mx-auto flex justify-between items-center\"><a href=\"/\" class=\"text-teal-400 hover:text-teal-300 text-xl font-bold\">HeroPacket</a><div class=\"space-x-4\"><a href=\"/\" class=\"text-gray-300 hover:text-teal-400\">Home</a> <a href=\"/upload\" class=\"text-gray-300 hover:text-teal-400\">Upload</a></div></div></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<nav class=\"bg-gray-800 p-4\"><div class=\"container mx-auto flex justify-between items-center\"><a href=\"/\" class=\"text-white hover:text-teal-300 text-xl font-bold\">HeroPacket</a><div class=\"space-x-4\"><a href=\"/\" class=\"text-gray-300 hover:text-white\">Home</a> <a href=\"/upload\" class=\"text-gray-300 hover:text-white\">Upload</a></div></div></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -387,9 +387,9 @@ func nav() templ.Component {
 // Helper function for conditional class based on index
 func condClass(i int) string {
 	if i%2 == 0 {
-		return "bg-gray-800 bg-opacity-50"
+		return "bg-gray-800/50"
 	}
-	return "bg-gray-800 bg-opacity-30"
+	return "bg-gray-800/30"
 }
 
 // humanBytes converts bytes to human-readable format

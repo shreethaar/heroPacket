@@ -23,14 +23,13 @@ func main() {
 		},
 	}))
 
-	// Static files
-	app.Static("/static", "internal/static")
 
 	// Routes
 	userHandler := handler.NewUserHandler()
-	app.GET("/", userHandler.HandleHomePage)
-	app.GET("/upload", userHandler.HandleUploadPage)
-	app.POST("/upload", userHandler.HandleUploadPage)
+    app.GET("/", userHandler.HandleHomePage) // TODO: rename to userHandler.HandleMainPage
+    app.GET("/home", userHandler.HandleUploadPage) // TODO: rename to userHandler.HandleHomePage 
+    app.POST("/home", userHandler.HandleUploadPage) //TODO: rename to userHandler.HandleHomePage 
+    app.POST("/upload",userHandler.HandleUploadPage)
 
 	// Start server
 	log.Println("Server starting on :3000")
