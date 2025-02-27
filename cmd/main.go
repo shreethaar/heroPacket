@@ -1,31 +1,38 @@
 package main
 
 import (
-    "github.com/labstack/echo/v4"
+	"log"
     "heroPacket/handler"
-    "heroPacket/internal/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
-
-
 func main() {
-    app:=echo.New()
-    /*app.GET("/", func(c echo.Context) error {
-        return c.String(http.StatusOK,"Hello, world!")
-    })*/
+	app := echo.New()
 
-    //app.GET("/user",handler.)
+	// Middleware
+	app.Use(middleware.Logger())
+	app.Use(middleware.Recover())
+	app.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+		TokenLength:  32,
+		TokenLookup:  "form:_csrf",
+		CookieName:   "csrf",
+		CookieMaxAge: 86400,
+		Skipper: func(c echo.Context) bool {
+			return c.Path() == "/static/*"
+		},
+	}))
 
-    userHandler:=handler.UserHandler{}
-    app.GET("/",userHandler.HandleHomePage)
-    app.GET("/upload",userHandler.HandleUploadPage)
-    app.POST("/upload",userHandler.HandleUploadPage,middleware.ValidateAndSavePCAP)
-    app.GET("/analysis/protocol-chart/:sessionID", userHandler.ProtocolChart)
-    app.GET("/analysis/traffic-timeline/:sessionID", userHandler.TrafficTimeline)
-    app.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
-    TokenLookup: "form:_csrf",
-}))
-    app.Logger.Fatal(app.Start(":1323"))
+	// Static files
+	app.Static("/static", "internal/static")
 
+	// Routes
+	userHandler := handler.NewUserHandler()
+	app.GET("/", userHandler.HandleHomePage)
+	app.GET("/upload", userHandler.HandleUploadPage)
+	app.POST("/upload", userHandler.HandleUploadPage)
+
+	// Start server
+	log.Println("Server starting on :3000")
+	app.Logger.Fatal(app.Start(":3000"))
 }
-
