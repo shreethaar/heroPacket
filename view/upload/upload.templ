@@ -1,190 +1,193 @@
 package upload
 
 import (
-    "strconv"
-    "html"
-    "time"
-    "fmt"
-    "heroPacket/view/layout"
-    "heroPacket/internal/analysis"
+	"fmt"
+	"heroPacket/internal/analysis"
+	"heroPacket/view/layout"
+	"strconv"
+	"time"
 )
 
 type ViewData struct {
-    SessionID     string
-    PacketCount   int
-    TopProtocols  []analysis.ProtocolCount
-    TrafficStats  *analysis.TrafficStats
-    Conversations []*analysis.Conversation
-    Error         string
-    CSRFToken     string
+	SessionID     string
+	PacketCount   int
+	TopProtocols  []analysis.ProtocolCount
+	TrafficStats  *analysis.TrafficStats
+	Conversations []*analysis.Conversation
+	Error         string
+	CSRFToken     string
 }
 
 templ Show(data ViewData) {
-    @layout.Base("HeroPacket - Analysis") {
-        <!-- Wrap all content in this block -->
-        <div class="container mx-auto max-w-6xl">
-            <!-- Your existing header, form, and analysis content -->
-            <header class="text-center mb-10">
-                <h1 class="text-5xl font-extrabold text-teal-400 mb-2">HeroPacket</h1>
-                <p class="text-lg text-gray-300">Upload and analyze your network traffic</p>
-            </header>           
-            <!-- Error Display -->
-            if data.Error != "" {
-                <div class="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg mb-6">
-                    { html.EscapeString(data.Error) }
-                </div>
-            }
+	@layout.Base("HeroPacket - Analysis", nav()) {
+		<div class="container mx-auto max-w-6xl">
+			<!-- Header -->
+			<header class="text-center mb-10">
+				<h1 class="text-5xl font-extrabold text-teal-400 mb-2">HeroPacket</h1>
+				<p class="text-lg text-gray-300">Upload and analyze your network traffic</p>
+			</header>
+			<!-- Error Display -->
+			if data.Error != "" {
+				<div class="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg mb-6">
+					{ data.Error }
+				</div>
+			}
+			<!-- Upload Form -->
+			<div class="bg-gray-700 shadow-xl rounded-xl p-8 border border-gray-600 mb-8">
+				<h2 class="text-2xl font-bold text-teal-400 mb-4">Upload PCAP File</h2>
+				<form hx-post="/upload" hx-encoding="multipart/form-data">
+					<input type="hidden" name="_csrf" value={ data.CSRFToken }/>
+					<div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+						<input
+							type="file"
+							name="pcap-file"
+							accept=".pcap,.pcapng"
+							class="bg-gray-800 text-gray-200 px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400"
+						/>
+						<button
+							type="submit"
+							class="bg-teal-500 text-white px-6 py-2 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400"
+						>
+							Analyze PCAP
+						</button>
+					</div>
+				</form>
+			</div>
+			<!-- Analysis Results -->
+			if data.SessionID != "" {
+				<div class="analysis-results space-y-6">
+					<!-- Summary Section -->
+					<div class="bg-gray-700 shadow-xl rounded-xl p-6 border border-gray-600">
+						<h2 class="text-2xl font-bold text-teal-400 mb-4">Analysis Summary</h2>
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div class="bg-gray-800 rounded-lg p-4 border border-gray-600">
+								<div class="text-gray-400 mb-1">Total Packets</div>
+								<div class="text-3xl font-bold text-teal-300">
+									{ strconv.Itoa(data.PacketCount) }
+								</div>
+							</div>
+							<div class="bg-gray-800 rounded-lg p-4 border border-gray-600">
+								<div class="text-gray-400 mb-1">Total Bytes</div>
+								<div class="text-3xl font-bold text-teal-300">
+									if data.TrafficStats != nil {
+										{ humanBytes(uint64(data.TrafficStats.TotalBytes)) }
+									} else {
+										{ "0" }
+									}
+								</div>
+							</div>
+						</div>
+						<div class="text-sm text-gray-400 mt-2">
+							Analyzed at: { time.Now().Format("2006-01-02 15:04:05") }
+						</div>
+					</div>
+					<!-- Protocol Distribution -->
+					<div class="bg-gray-700 shadow-xl rounded-xl p-6 border border-gray-600">
+						<h2 class="text-2xl font-bold text-teal-400 mb-4">Protocol Distribution</h2>
+						<div
+							hx-get={ fmt.Sprintf("/analysis/protocol-chart/%s", data.SessionID) }
+							hx-trigger="load"
+							class="w-full h-96 bg-gray-800 rounded-lg p-4 mb-4 flex items-center justify-center"
+							id="protocol-chart-container"
+						>
+							<div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-400"></div>
+						</div>
+						<div class="overflow-x-auto">
+							<table class="w-full text-left">
+								<thead>
+									<tr class="bg-gray-800">
+										<th class="px-4 py-2 rounded-tl-lg">Protocol</th>
+										<th class="px-4 py-2">Count</th>
+										<th class="px-4 py-2 rounded-tr-lg">%</th>
+									</tr>
+								</thead>
+								<tbody>
+									for i, proto := range data.TopProtocols {
+										<tr class={ condClass(i) }>
+											<td class="px-4 py-2 border-t border-gray-700">{ proto.Name }</td>
+											<td class="px-4 py-2 border-t border-gray-700">{ strconv.Itoa(proto.Count) }</td>
+											<td class="px-4 py-2 border-t border-gray-700">
+												if data.PacketCount > 0 {
+													{ fmt.Sprintf("%.1f%%", (float64(proto.Count)/float64(data.PacketCount))*100) }
+												} else {
+													{ "0.0%" }
+												}
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+					</div>
+					<!-- Conversations -->
+					<div class="bg-gray-700 shadow-xl rounded-xl p-6 border border-gray-600">
+						<h2 class="text-2xl font-bold text-teal-400 mb-4">Top Conversations</h2>
+						<div class="overflow-x-auto">
+							<table class="w-full text-left">
+								<thead>
+									<tr class="bg-gray-800">
+										<th class="px-4 py-2 rounded-tl-lg">Source</th>
+										<th class="px-4 py-2">Destination</th>
+										<th class="px-4 py-2">Protocol</th>
+										<th class="px-4 py-2">Packets</th>
+										<th class="px-4 py-2 rounded-tr-lg">Bytes</th>
+									</tr>
+								</thead>
+								<tbody>
+									for i, conv := range data.Conversations {
+										<tr class={ condClass(i) }>
+											<td class="px-4 py-2 border-t border-gray-700">{ conv.SourceIP }</td>
+											<td class="px-4 py-2 border-t border-gray-700">{ conv.DestIP }</td>
+											<td class="px-4 py-2 border-t border-gray-700">{ conv.Protocol }</td>
+											<td class="px-4 py-2 border-t border-gray-700">{ strconv.Itoa(conv.PacketCount) }</td>
+											<td class="px-4 py-2 border-t border-gray-700">{ humanBytes(uint64(conv.TotalBytes)) }</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			}
+			<!-- Footer -->
+			<footer class="mt-10 text-center text-gray-400 text-sm">
+				<a href="/" class="text-teal-400 hover:text-teal-300">← Back to Home</a>
+				<p class="mt-2">HeroPacket - Network Traffic Analysis Tool</p>
+			</footer>
+		</div>
+	}
+}
 
-            <!-- Upload Form -->
-            <div class="bg-gray-700 shadow-xl rounded-xl p-8 border border-gray-600 mb-8">
-                <h2 class="text-2xl font-bold text-teal-400 mb-4">Upload PCAP File</h2>
-                <form hx-post="/upload" hx-encoding="multipart/form-data">
-                    <input type="hidden" name="_csrf" value={ data.CSRFToken } />
-                    <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                        <input 
-                            type="file" 
-                            name="pcap-file" 
-                            accept=".pcap,.pcapng" 
-                            class="bg-gray-800 text-gray-200 px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                        />
-                        <button 
-                            type="submit" 
-                            class="bg-teal-500 text-white px-6 py-2 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                        >
-                            Analyze PCAP
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Analysis Results -->
-            if data.SessionID != "" {
-                <div class="analysis-results space-y-6">
-                    <!-- Summary Section -->
-                    <div class="bg-gray-700 shadow-xl rounded-xl p-6 border border-gray-600">
-                        <h2 class="text-2xl font-bold text-teal-400 mb-4">Analysis Summary</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-gray-800 rounded-lg p-4 border border-gray-600">
-                                <div class="text-gray-400 mb-1">Total Packets</div>
-                                <div class="text-3xl font-bold text-teal-300">
-                                    { strconv.Itoa(data.PacketCount) }
-                                </div>
-                            </div>
-                            
-                            <div class="bg-gray-800 rounded-lg p-4 border border-gray-600">
-                                <div class="text-gray-400 mb-1">Total Bytes</div>
-                                <div class="text-3xl font-bold text-teal-300">
-                                    if data.TrafficStats != nil {
-                                        { humanBytes(uint64(data.TrafficStats.TotalBytes)) }
-                                    } else {
-                                        0
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-sm text-gray-400 mt-2">
-                            Analyzed at: { time.Now().Format("2006-01-02 15:04:05") }
-                        </div>
-                    </div>
-
-                    <!-- Protocol Distribution -->
-                    <div class="bg-gray-700 shadow-xl rounded-xl p-6 border border-gray-600">
-                        <h2 class="text-2xl font-bold text-teal-400 mb-4">Protocol Distribution</h2>
-                        <div 
-                            hx-get={ "/analysis/protocol-chart/" + data.SessionID } 
-                            hx-trigger="load" 
-                            class="w-full h-96 bg-gray-800 rounded-lg p-4 mb-4 flex items-center justify-center"
-                            id="protocol-chart-container"
-                        >
-                            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-400"></div>
-                        </div>
-                        
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead>
-                                    <tr class="bg-gray-800">
-                                        <th class="px-4 py-2 rounded-tl-lg">Protocol</th>
-                                        <th class="px-4 py-2">Count</th>
-                                        <th class="px-4 py-2 rounded-tr-lg">%</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    for i, proto := range data.TopProtocols {
-                                        <tr class={ templ.KV("class", condClass(i)) }>
-                                            <td class="px-4 py-2 border-t border-gray-700">{ html.EscapeString(proto.Name) }</td>
-                                            <td class="px-4 py-2 border-t border-gray-700">{ strconv.Itoa(proto.Count) }</td>
-                                            <td class="px-4 py-2 border-t border-gray-700">
-                                                if data.PacketCount > 0 {
-                                                    { fmt.Sprintf("%.1f", float64(proto.Count)/float64(data.PacketCount)*100) }%
-                                                } else {
-                                                    0.0%
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Conversations -->
-                    <div class="bg-gray-700 shadow-xl rounded-xl p-6 border border-gray-600">
-                        <h2 class="text-2xl font-bold text-teal-400 mb-4">Top Conversations</h2>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead>
-                                    <tr class="bg-gray-800">
-                                        <th class="px-4 py-2 rounded-tl-lg">Source</th>
-                                        <th class="px-4 py-2">Destination</th>
-                                        <th class="px-4 py-2">Protocol</th>
-                                        <th class="px-4 py-2">Packets</th>
-                                        <th class="px-4 py-2 rounded-tr-lg">Bytes</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    for i, conv := range data.Conversations {
-                                        <tr class={ templ.KV("class", condClass(i)) }>
-                                            <td class="px-4 py-2 border-t border-gray-700">{ html.EscapeString(conv.SourceIP) }</td>
-                                            <td class="px-4 py-2 border-t border-gray-700">{ html.EscapeString(conv.DestIP) }</td>
-                                            <td class="px-4 py-2 border-t border-gray-700">{ html.EscapeString(conv.Protocol) }</td>
-                                            <td class="px-4 py-2 border-t border-gray-700">{ strconv.Itoa(conv.PacketCount) }</td>
-                                            <td class="px-4 py-2 border-t border-gray-700">{ humanBytes(uint64(conv.TotalBytes)) }</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            }
-            
-            <!-- Footer -->
-            <footer class="mt-10 text-center text-gray-400 text-sm">
-                <a href="/" class="text-teal-400 hover:text-teal-300">← Back to Home</a>
-                <p class="mt-2">HeroPacket - Network Traffic Analysis Tool</p>
-            </footer>
-        </div>
-    }
+templ nav() {
+	<nav class="bg-gray-800 p-4">
+		<div class="container mx-auto flex justify-between items-center">
+			<a href="/" class="text-teal-400 hover:text-teal-300 text-xl font-bold">HeroPacket</a>
+			<div class="space-x-4">
+				<a href="/" class="text-gray-300 hover:text-teal-400">Home</a>
+				<a href="/upload" class="text-gray-300 hover:text-teal-400">Upload</a>
+			</div>
+		</div>
+	</nav>
 }
 
 // Helper function for conditional class based on index
 func condClass(i int) string {
-    if i % 2 == 0 {
-        return "bg-gray-800 bg-opacity-50"
-    }
-    return "bg-gray-800 bg-opacity-30"
+	if i%2 == 0 {
+		return "bg-gray-800 bg-opacity-50"
+	}
+	return "bg-gray-800 bg-opacity-30"
 }
 
 // humanBytes converts bytes to human-readable format
 func humanBytes(b uint64) string {
-    const unit = 1024
-    if b < unit {
-        return fmt.Sprintf("%d B", b)
-    }
-    div, exp := uint64(unit), 0
-    for n := b / unit; n >= unit; n /= unit {
-        div *= unit
-        exp++
-    }
-    return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := uint64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
