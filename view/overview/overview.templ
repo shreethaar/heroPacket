@@ -1,0 +1,120 @@
+package overview
+
+import (
+    "fmt"
+    "time"
+    "heroPacket/internal/analysis"
+)
+
+type ViewData struct {
+    TrafficStats  *analysis.TrafficStats
+    TopProtocols  []analysis.ProtocolCount
+    SessionID     string
+}
+
+// Helper function for formatting bytes
+func formatBytes(bytes int) string {
+    const unit = 1024
+    if bytes < unit {
+        return fmt.Sprintf("%d B", bytes)
+    }
+    div, exp := int64(unit), 0
+    for n := int64(bytes) / unit; n >= unit; n /= unit {
+        div *= unit
+        exp++
+    }
+    return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// Helper function for formatting duration
+func formatDuration(d time.Duration) string {
+    seconds := int(d.Seconds())
+    hours := seconds / 3600
+    seconds = seconds % 3600
+    minutes := seconds / 60
+    seconds = seconds % 60
+
+    if hours > 0 {
+        return fmt.Sprintf("%dh %dm %ds", hours, minutes, seconds)
+    } else if minutes > 0 {
+        return fmt.Sprintf("%dm %ds", minutes, seconds)
+    }
+    return fmt.Sprintf("%ds", seconds)
+}
+
+templ Show(data ViewData) {
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeroPacket - Overview</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-r from-gray-800 to-gray-900 min-h-screen text-white">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-teal-400 mb-8">PCAP Overview</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Traffic Statistics -->
+            <div class="bg-gray-700 rounded-xl p-6 border border-gray-600">
+                <h2 class="text-xl font-semibold text-teal-400 mb-4">Traffic Statistics</h2>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-gray-300">Total Packets:</span>
+                        <span class="text-white font-semibold ml-2">{ fmt.Sprint(data.TrafficStats.TotalPackets) }</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-300">Total Bytes:</span>
+                        <span class="text-white font-semibold ml-2">{ formatBytes(data.TrafficStats.TotalBytes) }</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-300">Duration:</span>
+                        <span class="text-white font-semibold ml-2">
+                            { formatDuration(data.TrafficStats.EndTime.Sub(data.TrafficStats.StartTime)) }
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Packet Size Distribution -->
+            <div class="bg-gray-700 rounded-xl p-6 border border-gray-600">
+                <h2 class="text-xl font-semibold text-teal-400 mb-4">Packet Size Distribution</h2>
+                <div class="space-y-2">
+                    for bucket, count := range data.TrafficStats.SizeBuckets {
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-300">{ bucket }:</span>
+                            <span class="text-white font-semibold">{ fmt.Sprint(count) } packets</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Protocol Distribution -->
+        <div class="bg-gray-700 rounded-xl p-6 border border-gray-600">
+            <h2 class="text-xl font-semibold text-teal-400 mb-4">Protocol Distribution</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-gray-800/50">
+                            <th class="px-6 py-3">Protocol</th>
+                            <th class="px-6 py-3">Count</th>
+                            <th class="px-6 py-3">Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-600">
+                        for _, proto := range data.TopProtocols {
+                            <tr class="hover:bg-gray-600/50">
+                                <td class="px-6 py-4">{ proto.Name }</td>
+                                <td class="px-6 py-4">{ fmt.Sprint(proto.Count) }</td>
+                                <td class="px-6 py-4">
+                                    { fmt.Sprintf("%.1f%%", (float64(proto.Count) / float64(data.TrafficStats.TotalPackets)) * 100) }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+} 
