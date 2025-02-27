@@ -2,6 +2,9 @@ package handler
 
 import (
 	"net/http"
+	"os"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,36 +29,82 @@ func NewUserHandler() *UserHandler {
 	}
 }
 
-func (h *UserHandler) HandleHomePage(c echo.Context) error {
+func (h *UserHandler) HandleMainPage(c echo.Context) error {
 	return render(c, home.Show())
 }
 
-func (h *UserHandler) HandleUploadPage(c echo.Context) error {
-	// Get CSRF token from Echo context
+func (h *UserHandler) HandleHomePage(c echo.Context) error {
 	csrfToken := c.Get("csrf").(string)
 
-	if c.Request().Method == http.MethodGet {
-		return render(c, upload.Show(upload.ViewData{
-			CSRFToken: csrfToken,
-		}))
+	// Read files from uploads directory
+	files := []home.UploadedFile{}
+	entries, err := os.ReadDir("uploads")
+	if err == nil { // Don't fail if directory doesn't exist
+		for _, entry := range entries {
+			if !entry.IsDir() && (strings.HasSuffix(entry.Name(), ".pcap") || strings.HasSuffix(entry.Name(), ".pcapng")) {
+				info, err := entry.Info()
+				if err != nil {
+					continue
+				}
+				files = append(files, home.UploadedFile{
+					Name:       entry.Name(),
+					Size:       info.Size(),
+					UploadTime: info.ModTime(),
+				})
+			}
+		}
+	}
+
+	// Sort files by upload time, newest first
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].UploadTime.After(files[j].UploadTime)
+	})
+
+	return render(c, home.ShowHome(csrfToken, files))
+}
+
+func (h *UserHandler) HandleUpload(c echo.Context) error {
+	if c.Request().Method != http.MethodPost {
+		return c.String(http.StatusMethodNotAllowed, "Method not allowed")
+	}
+
+	csrfToken := c.Get("csrf").(string)
+
+	// Helper function to get files list
+	getFiles := func() []home.UploadedFile {
+		files := []home.UploadedFile{}
+		entries, err := os.ReadDir("uploads")
+		if err == nil { // Don't fail if directory doesn't exist
+			for _, entry := range entries {
+				if !entry.IsDir() && (strings.HasSuffix(entry.Name(), ".pcap") || strings.HasSuffix(entry.Name(), ".pcapng")) {
+					info, err := entry.Info()
+					if err != nil {
+						continue
+					}
+					files = append(files, home.UploadedFile{
+						Name:       entry.Name(),
+						Size:       info.Size(),
+						UploadTime: info.ModTime(),
+					})
+				}
+			}
+		}
+		sort.Slice(files, func(i, j int) bool {
+			return files[i].UploadTime.After(files[j].UploadTime)
+		})
+		return files
 	}
 
 	// Retrieve validated file
 	pcapFile, ok := c.Get("pcapFile").(middleware.PCAPFile)
 	if !ok {
-		return render(c, upload.Show(upload.ViewData{
-			Error:     "Failed to retrieve PCAP file",
-			CSRFToken: csrfToken,
-		}))
+		return render(c, home.ShowHome(csrfToken, getFiles())) // Return to home page with error
 	}
 
 	// Process PCAP using analysis package
 	packets, err := analysis.ExtractPackets(pcapFile.Path)
 	if err != nil {
-		return render(c, upload.Show(upload.ViewData{
-			Error:     "PCAP processing failed: " + err.Error(),
-			CSRFToken: csrfToken,
-		}))
+		return render(c, home.ShowHome(csrfToken, getFiles())) // Return to home page with error
 	}
 
 	// Create analysis session
@@ -91,7 +140,7 @@ func (h *UserHandler) HandleUploadPage(c echo.Context) error {
 		CSRFToken:     csrfToken, // Add CSRF token
 	}
 
-	return render(c, upload.Show(viewData)) // Changed from ShowResults to Show
+	return render(c, upload.Show(viewData)) // Show analysis results
 }
 
 // HTMX Handlers for visualizations

@@ -1,8 +1,9 @@
 package main
 
 import (
+	"heroPacket/handler"
 	"log"
-    "heroPacket/handler"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -23,13 +24,15 @@ func main() {
 		},
 	}))
 
-
 	// Routes
 	userHandler := handler.NewUserHandler()
-    app.GET("/", userHandler.HandleHomePage) // TODO: rename to userHandler.HandleMainPage
-    app.GET("/home", userHandler.HandleUploadPage) // TODO: rename to userHandler.HandleHomePage 
-    app.POST("/home", userHandler.HandleUploadPage) //TODO: rename to userHandler.HandleHomePage 
-    app.POST("/upload",userHandler.HandleUploadPage)
+	app.GET("/", userHandler.HandleMainPage)
+	app.GET("/home", userHandler.HandleHomePage)
+	app.POST("/upload", userHandler.HandleUpload)
+
+	// Analysis visualization routes
+	app.GET("/analysis/protocol-chart/:sessionID", userHandler.ProtocolChart)
+	app.GET("/analysis/traffic-timeline/:sessionID", userHandler.TrafficTimeline)
 
 	// Start server
 	log.Println("Server starting on :3000")
