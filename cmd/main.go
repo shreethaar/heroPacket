@@ -30,6 +30,12 @@ func main() {
 	app.GET("/home", userHandler.HandleHomePage)
 	app.POST("/upload", userHandler.HandleUpload)
 
+	// Analytics and Overview routes
+	app.GET("/analytics", userHandler.HandleAnalytics)
+	app.GET("/overview", userHandler.HandleOverview)
+	app.GET("/analytics/:sessionID", userHandler.HandleAnalytics)
+	app.GET("/overview/:sessionID", userHandler.HandleOverview)
+
 	// Analysis visualization routes
 	app.GET("/analysis/protocol-chart/:sessionID", userHandler.ProtocolChart)
 	app.GET("/analysis/traffic-timeline/:sessionID", userHandler.TrafficTimeline)
