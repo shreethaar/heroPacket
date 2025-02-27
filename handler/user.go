@@ -11,7 +11,9 @@ import (
 	"heroPacket/internal/analysis"
 	"heroPacket/internal/middleware"
 	"heroPacket/internal/models"
+	"heroPacket/view/analytics"
 	"heroPacket/view/home"
+	"heroPacket/view/overview"
 	"heroPacket/view/upload"
 
 	"github.com/google/uuid"
@@ -172,6 +174,55 @@ func (h *UserHandler) TrafficTimeline(c echo.Context) error {
 
 	c.Response().Header().Set(echo.HeaderContentType, "image/svg+xml")
 	return session.TrafficTimeline().Render(c.Response().Writer)
+}
+
+func (h *UserHandler) HandleOverview(c echo.Context) error {
+	sessionID := c.Param("sessionID")
+	if sessionID == "" {
+		// Return empty overview if no session
+		return render(c, overview.Show(overview.ViewData{
+			TrafficStats: &analysis.TrafficStats{},
+			TopProtocols: []analysis.ProtocolCount{},
+		}))
+	}
+
+	h.cacheMutex.RLock()
+	session, exists := h.analysisCache[sessionID]
+	h.cacheMutex.RUnlock()
+
+	if !exists {
+		return c.String(http.StatusNotFound, "Session not found")
+	}
+
+	viewData := overview.ViewData{
+		SessionID:    sessionID,
+		TrafficStats: session.TrafficStats(),
+		TopProtocols: session.Protocols().Top(10),
+	}
+
+	return render(c, overview.Show(viewData))
+}
+
+func (h *UserHandler) HandleAnalytics(c echo.Context) error {
+	sessionID := c.Param("sessionID")
+	if sessionID == "" {
+		// Return empty analytics if no session
+		return render(c, analytics.Show(analytics.ViewData{}))
+	}
+
+	h.cacheMutex.RLock()
+	_, exists := h.analysisCache[sessionID]
+	h.cacheMutex.RUnlock()
+
+	if !exists {
+		return c.String(http.StatusNotFound, "Session not found")
+	}
+
+	viewData := analytics.ViewData{
+		SessionID: sessionID,
+	}
+
+	return render(c, analytics.Show(viewData))
 }
 
 func (h *UserHandler) clearCacheAfter(sessionID string, duration time.Duration) {
