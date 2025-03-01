@@ -44,7 +44,7 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
 </head>
 <body class="bg-gradient-to-r from-gray-800 to-gray-900 min-h-screen text-white">
   <!-- Top Navigation Bar -->
-  <nav class="bg-gray-700 border-b border-gray-600 px-4 py-3">
+  <nav class="bg-gray-700 border-b border-gray-600 px-4 py-3 rounded-b-2xl shadow-lg mb-2">
     <div class="container mx-auto flex justify-between items-center">
       <div class="flex items-center">
         <h1 class="text-2xl font-bold text-teal-400">HeroPacket</h1>
@@ -52,7 +52,7 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
       <div class="flex items-center space-x-4">
         <button 
           onclick="document.getElementById('fileInput').click()"
-          class="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400 flex items-center"
+          class="bg-teal-500 text-white px-4 py-2 rounded-xl hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400 flex items-center"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
@@ -73,9 +73,9 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
     </div>
   </nav>
 
-  <div class="flex h-[calc(100vh-4rem)]">
+  <div class="flex h-[calc(100vh-5rem)]">
     <!-- Sidebar -->
-    <div class="w-64 bg-gray-700 border-r border-gray-600">
+    <div class="w-64 bg-gray-700 border-r border-gray-600 rounded-r-2xl shadow-xl ml-2 mt-2">
       <div class="p-4">
         <nav class="space-y-2">
           <a href="/overview" class="flex items-center px-4 py-3 text-white hover:bg-gray-600 hover:text-white rounded-lg transition-colors">
