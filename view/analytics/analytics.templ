@@ -4,6 +4,7 @@ import "fmt"
 
 type ViewData struct {
     SessionID string
+    Filename  string
 }
 
 templ Show(data ViewData) {
@@ -23,7 +24,7 @@ templ Show(data ViewData) {
             <div class="bg-gray-700 rounded-xl p-6 border border-gray-600">
                 <h2 class="text-xl font-semibold text-teal-400 mb-4">Protocol Distribution</h2>
                 <div 
-                    hx-get={ fmt.Sprintf("/analysis/protocol-chart/%s", data.SessionID) }
+                    hx-get={ fmt.Sprintf("/analysis/protocol-chart/%s", data.Filename) }
                     hx-trigger="load"
                     class="w-full h-96 bg-gray-800/50 rounded-xl flex items-center justify-center"
                 >
@@ -35,7 +36,7 @@ templ Show(data ViewData) {
             <div class="bg-gray-700 rounded-xl p-6 border border-gray-600">
                 <h2 class="text-xl font-semibold text-teal-400 mb-4">Traffic Timeline</h2>
                 <div 
-                    hx-get={ fmt.Sprintf("/analysis/traffic-timeline/%s", data.SessionID) }
+                    hx-get={ fmt.Sprintf("/analysis/traffic-timeline/%s", data.Filename) }
                     hx-trigger="load"
                     class="w-full h-96 bg-gray-800/50 rounded-xl flex items-center justify-center"
                 >

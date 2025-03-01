@@ -59,7 +59,12 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
           </svg>
           Upload PCAP
         </button>
-        <form id="uploadForm" hx-post="/upload" hx-encoding="multipart/form-data" class="hidden">
+        <form id="uploadForm" 
+            hx-post="/upload" 
+            hx-encoding="multipart/form-data" 
+            enctype="multipart/form-data"
+            method="POST"
+            class="hidden">
           <input 
             type="file" 
             id="fileInput" 
@@ -72,6 +77,61 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
       </div>
     </div>
   </nav>
+
+  <!-- Success Dialog -->
+  <div id="successDialog" class="fixed inset-0 flex items-center justify-center hidden">
+    <div class="bg-gray-700 rounded-xl p-6 border border-gray-600 shadow-2xl">
+      <div class="flex items-center text-green-400 mb-4">
+        <svg class="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span class="text-lg font-semibold">Upload Successful!</span>
+      </div>
+      <p class="text-gray-300">Your PCAP file has been uploaded successfully.</p>
+    </div>
+  </div>
+
+  <!-- Form with success handling -->
+  <form id="uploadForm" 
+      hx-post="/upload" 
+      hx-encoding="multipart/form-data" 
+      enctype="multipart/form-data"
+      method="POST"
+      class="hidden"
+      onsubmit="showSuccessDialog()">
+    <input 
+        type="file" 
+        id="fileInput" 
+        name="pcap-file" 
+        accept=".pcap,.pcapng"
+        onchange="document.getElementById('uploadForm').submit()"
+    />
+    <input type="hidden" name="_csrf" value={csrfToken}/>
+  </form>
+
+  <!-- Add script for dialog handling -->
+  <script>
+    function showSuccessDialog() {
+      const dialog = document.getElementById('successDialog');
+      dialog.classList.remove('hidden');
+      setTimeout(() => {
+        dialog.classList.add('hidden');
+      }, 1000);
+    }
+
+    // Enable analyze buttons
+    function setupAnalyzeButtons() {
+      document.querySelectorAll('[data-analyze-button]').forEach(button => {
+        button.addEventListener('click', function() {
+          const fileName = this.getAttribute('data-filename');
+          window.location.href = `/analyze/${fileName}`;
+        });
+      });
+    }
+
+    // Run setup when page loads
+    document.addEventListener('DOMContentLoaded', setupAnalyzeButtons);
+  </script>
 
   <div class="flex h-[calc(100vh-5rem)]">
     <!-- Sidebar -->
@@ -131,8 +191,9 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
                   <td class="px-6 py-4">{ formatFileSize(file.Size) }</td>
                   <td class="px-6 py-4">
                     <button 
-                      hx-post={ fmt.Sprintf("/analyze/%s", file.Name) }
-                      class="text-teal-400 hover:text-teal-300 transition-colors"
+                      data-analyze-button
+                      data-filename={ file.Name }
+                      class="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors"
                     >
                       Analyze
                     </button>

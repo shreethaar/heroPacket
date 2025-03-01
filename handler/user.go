@@ -178,25 +178,28 @@ func (h *UserHandler) TrafficTimeline(c echo.Context) error {
 }
 
 func (h *UserHandler) HandleOverview(c echo.Context) error {
-	sessionID := c.Param("sessionID")
-	if sessionID == "" {
-		// Return empty overview if no session
+	filename := c.Param("filename")
+	if filename == "" {
 		return render(c, overview.Show(overview.ViewData{
 			TrafficStats: &analysis.TrafficStats{},
 			TopProtocols: []analysis.ProtocolCount{},
 		}))
 	}
 
-	h.cacheMutex.RLock()
-	session, exists := h.analysisCache[sessionID]
-	h.cacheMutex.RUnlock()
+	// Process file and create session if needed
+	filePath := "uploads/" + filename
+	packets, err := analysis.ExtractPackets(filePath)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Error processing PCAP file")
+	}
 
-	if !exists {
-		return c.String(http.StatusNotFound, "Session not found")
+	session := analysis.NewSession()
+	for _, packet := range packets {
+		session.Process(packet)
 	}
 
 	viewData := overview.ViewData{
-		SessionID:    sessionID,
+		Filename:     filename,
 		TrafficStats: session.TrafficStats(),
 		TopProtocols: session.Protocols().Top(10),
 	}
@@ -205,22 +208,13 @@ func (h *UserHandler) HandleOverview(c echo.Context) error {
 }
 
 func (h *UserHandler) HandleAnalytics(c echo.Context) error {
-	sessionID := c.Param("sessionID")
-	if sessionID == "" {
-		// Return empty analytics if no session
+	filename := c.Param("filename")
+	if filename == "" {
 		return render(c, analytics.Show(analytics.ViewData{}))
 	}
 
-	h.cacheMutex.RLock()
-	_, exists := h.analysisCache[sessionID]
-	h.cacheMutex.RUnlock()
-
-	if !exists {
-		return c.String(http.StatusNotFound, "Session not found")
-	}
-
 	viewData := analytics.ViewData{
-		SessionID: sessionID,
+		Filename: filename,
 	}
 
 	return render(c, analytics.Show(viewData))
@@ -228,6 +222,48 @@ func (h *UserHandler) HandleAnalytics(c echo.Context) error {
 
 func (h *UserHandler) HandleDocs(c echo.Context) error {
 	return render(c, docs.Show())
+}
+
+func (h *UserHandler) HandleAnalyze(c echo.Context) error {
+	filename := c.Param("filename")
+
+	// Check if file exists
+	filePath := "uploads/" + filename
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return c.String(http.StatusNotFound, "File not found")
+	}
+
+	// Process PCAP file
+	packets, err := analysis.ExtractPackets(filePath)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Error processing PCAP file")
+	}
+
+	// Create analysis session
+	sessionID := uuid.New().String()
+	session := analysis.NewSession()
+
+	// Process packets concurrently
+	var wg sync.WaitGroup
+	for _, packet := range packets {
+		wg.Add(1)
+		go func(p models.Packet) {
+			defer wg.Done()
+			session.Process(p)
+		}(packet)
+	}
+	wg.Wait()
+
+	// Store session in cache
+	h.cacheMutex.Lock()
+	h.analysisCache[sessionID] = session
+	h.cacheMutex.Unlock()
+
+	// Set cache expiration
+	go h.clearCacheAfter(sessionID, 30*time.Minute)
+
+	// Redirect to overview page with session ID
+	return c.Redirect(http.StatusSeeOther, "/overview/"+sessionID)
 }
 
 func (h *UserHandler) clearCacheAfter(sessionID string, duration time.Duration) {

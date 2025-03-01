@@ -30,18 +30,17 @@ func main() {
 	app.GET("/home", userHandler.HandleHomePage)
 	app.POST("/upload", userHandler.HandleUpload)
 
-	// Analytics and Overview routes
-	app.GET("/analytics", userHandler.HandleAnalytics)
-	app.GET("/overview", userHandler.HandleOverview)
-	app.GET("/analytics/:sessionID", userHandler.HandleAnalytics)
-	app.GET("/overview/:sessionID", userHandler.HandleOverview)
+	// Analysis routes
+	app.GET("/analyze/:filename", userHandler.HandleAnalyze)
+	app.GET("/overview/:filename", userHandler.HandleOverview)
+	app.GET("/analytics/:filename", userHandler.HandleAnalytics)
+
+	// Analysis visualization routes
+	app.GET("/analysis/protocol-chart/:filename", userHandler.ProtocolChart)
+	app.GET("/analysis/traffic-timeline/:filename", userHandler.TrafficTimeline)
 
 	// Documentation route
 	app.GET("/docs", userHandler.HandleDocs)
-
-	// Analysis visualization routes
-	app.GET("/analysis/protocol-chart/:sessionID", userHandler.ProtocolChart)
-	app.GET("/analysis/traffic-timeline/:sessionID", userHandler.TrafficTimeline)
 
 	// Start server
 	log.Println("Server starting on :3000")
