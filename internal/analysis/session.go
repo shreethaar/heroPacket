@@ -10,6 +10,10 @@ type Session struct {
 	protocols     *ProtocolAnalyzer
 	stats         *TrafficStats
 	conversations *ConversationTracker
+	dns           *DNSAnalyzer
+	http          *HTTPAnalyzer
+	security      *SecurityAnalyzer
+	networkMap    *NetworkMapAnalyzer
 }
 
 func NewSession() *Session {
@@ -17,6 +21,10 @@ func NewSession() *Session {
 		protocols:     NewProtocolAnalyzer(),
 		stats:         NewTrafficStats(),
 		conversations: NewConversationTracker(),
+		dns:           NewDNSAnalyzer(),
+		http:          NewHTTPAnalyzer(),
+		security:      NewSecurityAnalyzer(),
+		networkMap:    NewNetworkMapAnalyzer(),
 	}
 }
 
@@ -24,6 +32,10 @@ func (s *Session) Process(p models.Packet) {
 	s.protocols.Process(p)
 	s.stats.Process(p)
 	s.conversations.Process(p)
+	s.dns.Process(p)
+	s.http.Process(p)
+	s.security.Process(p)
+	s.networkMap.Process(p)
 }
 
 func (s *Session) Protocols() *ProtocolAnalyzer {
@@ -110,4 +122,9 @@ func (c *Chart) Render(w io.Writer) error {
 	// Implement SVG rendering logic here
 	// This should convert the chart data into SVG format
 	return nil
+}
+
+// Add getter for network map
+func (s *Session) NetworkMap() *NetworkMapAnalyzer {
+	return s.networkMap
 }

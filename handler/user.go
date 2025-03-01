@@ -181,8 +181,11 @@ func (h *UserHandler) HandleOverview(c echo.Context) error {
 	filename := c.Param("filename")
 	if filename == "" {
 		return render(c, overview.Show(overview.ViewData{
-			TrafficStats: &analysis.TrafficStats{},
-			TopProtocols: []analysis.ProtocolCount{},
+			TrafficStats:  &analysis.TrafficStats{},
+			TopProtocols:  []analysis.ProtocolCount{},
+			Conversations: []*analysis.Conversation{},
+			NetworkNodes:  []*analysis.NetworkNode{},
+			DNSQueries:    []analysis.QueryCount{},
 		}))
 	}
 
@@ -199,9 +202,12 @@ func (h *UserHandler) HandleOverview(c echo.Context) error {
 	}
 
 	viewData := overview.ViewData{
-		Filename:     filename,
-		TrafficStats: session.TrafficStats(),
-		TopProtocols: session.Protocols().Top(10),
+		Filename:      filename,
+		TrafficStats:  session.TrafficStats(),
+		TopProtocols:  session.Protocols().Top(10),
+		Conversations: session.Conversations().Top(5),
+		NetworkNodes:  session.NetworkMap().GetActiveNodes(),
+		DNSQueries:    session.DNS().TopQueries(5),
 	}
 
 	return render(c, overview.Show(viewData))
@@ -213,8 +219,23 @@ func (h *UserHandler) HandleAnalytics(c echo.Context) error {
 		return render(c, analytics.Show(analytics.ViewData{}))
 	}
 
+	// Process file and create session
+	filePath := "uploads/" + filename
+	packets, err := analysis.ExtractPackets(filePath)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Error processing PCAP file")
+	}
+
+	session := analysis.NewSession()
+	for _, packet := range packets {
+		session.Process(packet)
+	}
+
 	viewData := analytics.ViewData{
-		Filename: filename,
+		Filename:      filename,
+		TrafficStats:  session.TrafficStats(),
+		TopProtocols:  session.Protocols().Top(10),
+		Conversations: session.Conversations().Top(10),
 	}
 
 	return render(c, analytics.Show(viewData))
@@ -233,37 +254,8 @@ func (h *UserHandler) HandleAnalyze(c echo.Context) error {
 		return c.String(http.StatusNotFound, "File not found")
 	}
 
-	// Process PCAP file
-	packets, err := analysis.ExtractPackets(filePath)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Error processing PCAP file")
-	}
-
-	// Create analysis session
-	sessionID := uuid.New().String()
-	session := analysis.NewSession()
-
-	// Process packets concurrently
-	var wg sync.WaitGroup
-	for _, packet := range packets {
-		wg.Add(1)
-		go func(p models.Packet) {
-			defer wg.Done()
-			session.Process(p)
-		}(packet)
-	}
-	wg.Wait()
-
-	// Store session in cache
-	h.cacheMutex.Lock()
-	h.analysisCache[sessionID] = session
-	h.cacheMutex.Unlock()
-
-	// Set cache expiration
-	go h.clearCacheAfter(sessionID, 30*time.Minute)
-
-	// Redirect to overview page with session ID
-	return c.Redirect(http.StatusSeeOther, "/overview/"+sessionID)
+	// Redirect directly to overview page with filename
+	return c.Redirect(http.StatusSeeOther, "/overview/"+filename)
 }
 
 func (h *UserHandler) clearCacheAfter(sessionID string, duration time.Duration) {
