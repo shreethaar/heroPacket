@@ -147,13 +147,11 @@ templ Show(data ViewData) {
                             <div class="bg-gray-800/50 rounded-lg p-4">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-teal-400">{ node.IP }</span>
-                                    <span 
-                                        class={
-                                            "px-2 py-1 text-sm rounded-full " + 
-                                            templ.KV("bg-purple-500/20 text-purple-300", node.Type == "server") +
-                                            templ.KV("bg-blue-500/20 text-blue-300", node.Type != "server")
-                                        }
-                                    >
+                                    <span class={templ.Classes(
+                                        "px-2 py-1 text-sm rounded-full",
+                                        templ.KV("bg-purple-500/20 text-purple-300", node.Type == "server"),
+                                        templ.KV("bg-blue-500/20 text-blue-300", node.Type != "server")
+                                    )}>
                                         { node.Type }
                                     </span>
                                 </div>
