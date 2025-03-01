@@ -128,3 +128,7 @@ func (c *Chart) Render(w io.Writer) error {
 func (s *Session) NetworkMap() *NetworkMapAnalyzer {
 	return s.networkMap
 }
+
+func (s *Session) DNS() *DNSAnalyzer {
+	return s.dns
+}

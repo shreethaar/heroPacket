@@ -150,7 +150,7 @@ templ Show(data ViewData) {
                                     <span class={templ.Classes(
                                         "px-2 py-1 text-sm rounded-full",
                                         templ.KV("bg-purple-500/20 text-purple-300", node.Type == "server"),
-                                        templ.KV("bg-blue-500/20 text-blue-300", node.Type != "server")
+                                        templ.KV("bg-blue-500/20 text-blue-300", node.Type != "server"),
                                     )}>
                                         { node.Type }
                                     </span>
