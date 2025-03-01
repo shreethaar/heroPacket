@@ -36,6 +36,9 @@ func main() {
 	app.GET("/analytics/:sessionID", userHandler.HandleAnalytics)
 	app.GET("/overview/:sessionID", userHandler.HandleOverview)
 
+	// Documentation route
+	app.GET("/docs", userHandler.HandleDocs)
+
 	// Analysis visualization routes
 	app.GET("/analysis/protocol-chart/:sessionID", userHandler.ProtocolChart)
 	app.GET("/analysis/traffic-timeline/:sessionID", userHandler.TrafficTimeline)

@@ -12,6 +12,7 @@ import (
 	"heroPacket/internal/middleware"
 	"heroPacket/internal/models"
 	"heroPacket/view/analytics"
+	"heroPacket/view/docs"
 	"heroPacket/view/home"
 	"heroPacket/view/overview"
 	"heroPacket/view/upload"
@@ -223,6 +224,10 @@ func (h *UserHandler) HandleAnalytics(c echo.Context) error {
 	}
 
 	return render(c, analytics.Show(viewData))
+}
+
+func (h *UserHandler) HandleDocs(c echo.Context) error {
+	return render(c, docs.Show())
 }
 
 func (h *UserHandler) clearCacheAfter(sessionID string, duration time.Duration) {
