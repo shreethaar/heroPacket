@@ -85,7 +85,7 @@ func ShowHome(csrfToken string, files []UploadedFile) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"></form></div></div></nav><div class=\"flex h-[calc(100vh-4rem)]\"><!-- Sidebar --><div class=\"w-64 bg-gray-700 border-r border-gray-600\"><div class=\"p-4\"><nav class=\"space-y-2\"><a href=\"/overview\" class=\"flex items-center px-4 py-3 text-white hover:bg-gray-600 hover:text-white rounded-lg transition-colors\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5 mr-3\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6\"></path></svg> Overview</a> <a href=\"/analytics\" class=\"flex items-center px-4 py-3 text-white hover:bg-gray-600 hover:text-white rounded-lg transition-colors\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5 mr-3\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z\"></path></svg> Analytics</a> <a href=\"/mitre\" class=\"flex items-center px-4 py-3 text-white hover:bg-gray-600 hover:text-white rounded-lg transition-colors\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5 mr-3\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z\"></path></svg> MITRE ATT&CK Scan</a></nav></div></div><!-- Main Content Area --><div class=\"flex-1 p-8\"><div class=\"bg-gray-700 rounded-2xl p-6 border border-gray-600\"><div class=\"flex justify-between items-center mb-6\"><h2 class=\"text-2xl font-bold text-white\">Previous Uploads</h2></div><div class=\"overflow-x-auto\"><table class=\"w-full text-left text-white\"><thead class=\"bg-gray-800/50\"><tr><th class=\"px-6 py-3 rounded-l-lg\">Filename</th><th class=\"px-6 py-3\">Upload Date</th><th class=\"px-6 py-3\">Size</th><th class=\"px-6 py-3 rounded-r-lg\">Actions</th></tr></thead> <tbody class=\"divide-y divide-gray-600\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"></form></div></div></nav><div class=\"flex h-[calc(100vh-4rem)]\"><!-- Sidebar --><div class=\"w-64 bg-gray-700 border-r border-gray-600\"><div class=\"p-4\"><nav class=\"space-y-2\"><a href=\"/overview\" class=\"flex items-center px-4 py-3 text-white hover:bg-gray-600 hover:text-white rounded-lg transition-colors\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5 mr-3\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6\"></path></svg> Overview</a> <a href=\"/analytics\" class=\"flex items-center px-4 py-3 text-white hover:bg-gray-600 hover:text-white rounded-lg transition-colors\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5 mr-3\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z\"></path></svg> Analytics</a> <a href=\"/mitre\" class=\"flex items-center px-4 py-3 text-white hover:bg-gray-600 hover:text-white rounded-lg transition-colors\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5 mr-3\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z\"></path></svg> MITRE ATT&CK Scan</a> <a href=\"/docs\" class=\"flex items-center px-4 py-3 text-white hover:bg-gray-600 hover:text-white rounded-lg transition-colors\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5 mr-3\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253\"></path></svg> Documentation</a></nav></div></div><!-- Main Content Area --><div class=\"flex-1 p-8\"><div class=\"bg-gray-700 rounded-2xl p-6 border border-gray-600\"><div class=\"flex justify-between items-center mb-6\"><h2 class=\"text-2xl font-bold text-white\">Previous Uploads</h2></div><div class=\"overflow-x-auto\"><table class=\"w-full text-left text-white\"><thead class=\"bg-gray-800/50\"><tr><th class=\"px-6 py-3 rounded-l-lg\">Filename</th><th class=\"px-6 py-3\">Upload Date</th><th class=\"px-6 py-3\">Size</th><th class=\"px-6 py-3 rounded-r-lg\">Actions</th></tr></thead> <tbody class=\"divide-y divide-gray-600\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -97,7 +97,7 @@ func ShowHome(csrfToken string, files []UploadedFile) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(file.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/home/home.templ`, Line: 123, Col: 51}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/home/home.templ`, Line: 129, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -110,7 +110,7 @@ func ShowHome(csrfToken string, files []UploadedFile) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(file.UploadTime.Format("2006-01-02 15:04:05"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/home/home.templ`, Line: 124, Col: 87}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/home/home.templ`, Line: 130, Col: 87}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -123,7 +123,7 @@ func ShowHome(csrfToken string, files []UploadedFile) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(formatFileSize(file.Size))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/home/home.templ`, Line: 125, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/home/home.templ`, Line: 131, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -136,7 +136,7 @@ func ShowHome(csrfToken string, files []UploadedFile) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/analyze/%s", file.Name))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/home/home.templ`, Line: 128, Col: 69}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/home/home.templ`, Line: 134, Col: 69}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
