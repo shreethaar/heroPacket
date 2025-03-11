@@ -307,6 +307,15 @@ func (h *UserHandler) HandleAnalyze(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/overview/"+filename)
 }
 
+// HandleConfirmDelete shows the delete confirmation dialog
+func (h *UserHandler) HandleConfirmDelete(c echo.Context) error {
+	filename := c.Param("filename")
+	if filename == "" {
+		return render(c, home.ErrorTemplate("No filename provided"))
+	}
+	return render(c, home.DeleteConfirmationTemplate(filename))
+}
+
 // HandleDeleteFile handles the deletion of a PCAP file
 func (h *UserHandler) HandleDeleteFile(c echo.Context) error {
 	filename := c.Param("filename")
@@ -340,14 +349,9 @@ func (h *UserHandler) HandleDeleteFile(c echo.Context) error {
 	h.hashMutex.Unlock()
 
 	log.Printf("Successfully deleted file: %s", filePath)
-	
-	// Get the updated file list
+
+	// Return the updated file list template
 	files := h.getUploadedFiles()
-	
-	// Set HX-Refresh header to force a refresh of the file list
-	c.Response().Header().Set("HX-Refresh", "true")
-	
-	// Return the updated file list
 	return render(c, home.FileListTemplate(files))
 }
 

@@ -2,10 +2,11 @@ package main
 
 import (
 	"heroPacket/handler"
+	pcapmiddleware "heroPacket/internal/middleware"
 	"net/http"
 
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
@@ -26,10 +27,8 @@ func main() {
 	}
 
 	// Add only the essential middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-
-	// NO CSRF middleware
+	e.Use(echomiddleware.Logger())
+	e.Use(echomiddleware.Recover())
 
 	// Initialize user handler
 	userHandler := handler.NewUserHandler()
@@ -39,10 +38,11 @@ func main() {
 	e.GET("/home", userHandler.HandleHomePage)
 	e.GET("/documentation", userHandler.HandleDocs)
 
-	// File upload routes
+	// File upload routes with PCAP validation middleware
 	e.GET("/upload", userHandler.HandleUpload)
-	e.POST("/upload", userHandler.HandleUpload)
+	e.POST("/upload", userHandler.HandleUpload, pcapmiddleware.ValidateAndSavePCAP)
 	e.GET("/analyze/:filename", userHandler.HandleAnalyze)
+	e.GET("/confirm-delete/:filename", userHandler.HandleConfirmDelete)
 	e.DELETE("/delete-file/:filename", userHandler.HandleDeleteFile)
 	e.GET("/refresh-files", userHandler.HandleRefreshFiles)
 
