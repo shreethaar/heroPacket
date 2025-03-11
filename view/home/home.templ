@@ -41,6 +41,7 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HeroPacket</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
 </head>
 <body class="bg-gray-100 min-h-screen text-gray-800">
   <!-- Top Navigation Bar -->
@@ -91,37 +92,29 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
         
         <!-- Form for file upload with HTMX -->
         <form id="uploadForm" 
+          action="/upload"
+          method="POST"
+          enctype="multipart/form-data"
           hx-post="/upload" 
           hx-encoding="multipart/form-data" 
-          enctype="multipart/form-data"
           hx-target="#uploadResponse"
           hx-indicator="#uploadingIndicator"
-          hx-swap="outerHTML"
+          hx-trigger="change from:#fileInput"
         >
+          <input type="hidden" name="_csrf" value={csrfToken}/>
+          
+          <!-- Button to trigger file input -->
+          <label for="fileInput" class="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 mx-auto cursor-pointer inline-block">
+            Upload
+          </label>
+          
           <input 
             type="file" 
             id="fileInput" 
             name="pcap-file" 
             accept=".pcap,.pcapng,.cap"
-            onchange="updateFileName()"
             class="hidden"
           />
-          <input type="hidden" name="_csrf" value={csrfToken}/>
-          
-          <!-- Button to trigger file input -->
-          <button 
-            type="button"
-            onclick="document.getElementById('fileInput').click()"
-            class="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 mx-auto"
-          >
-            Upload
-          </button>
-          
-          <!-- Submit button that will be clicked by JavaScript -->
-          <button 
-            type="submit" 
-            id="submitButton" 
-            class="hidden">Submit</button>
             
           <!-- Loading indicator - hidden by default, shown during upload -->
           <div id="uploadingIndicator" class="htmx-indicator mt-4 hidden">
@@ -185,35 +178,6 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
 
   <!-- Scripts -->
   <script>
-    function updateFileName() {
-      const fileInput = document.getElementById('fileInput');
-      const uploadDisplay = document.getElementById('uploadDisplay');
-      const submitButton = document.getElementById('submitButton');
-      
-      if (fileInput.files.length > 0) {
-        const fileName = fileInput.files[0].name;
-        uploadDisplay.innerHTML = `
-          <div class="p-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <p class="text-gray-800 text-sm mb-2">${fileName}</p>
-          </div>
-        `;
-        
-        // Trigger the form submission via HTMX
-        submitButton.click();
-      }
-    }
-
-    // Function to refresh the page after successful upload
-    function refreshAfterUpload() {
-      // Wait a moment to show the success message before refreshing
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    }
-
     // Enable analyze buttons
     function setupAnalyzeButtons() {
       document.querySelectorAll('[data-analyze-button]').forEach(button => {

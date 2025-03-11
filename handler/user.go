@@ -11,6 +11,7 @@ import (
 	"heroPacket/view/overview"
 	"heroPacket/view/upload"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -72,42 +73,62 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 		return c.String(http.StatusMethodNotAllowed, "Method not allowed")
 	}
 
-	// Get file from form
+	// Check if we have a file from the form
 	file, err := c.FormFile("pcap-file")
 	if err != nil {
+		log.Printf("No file uploaded: %v", err)
 		return render(c, upload.UploadError("No file uploaded"))
 	}
 
+	log.Printf("Received file: %s, size: %d bytes", file.Filename, file.Size)
+
 	// Check file size
 	if file.Size > middleware.MaxPCAPSize {
+		log.Printf("File size exceeds limit: %d bytes", file.Size)
 		return render(c, upload.UploadError("File size exceeds the allowed limit"))
 	}
 
 	// Open file
 	src, err := file.Open()
 	if err != nil {
+		log.Printf("Failed to open file: %v", err)
 		return render(c, upload.UploadError(fmt.Sprintf("Failed to open file: %v", err)))
 	}
 	defer src.Close()
 
 	// Validate magic number
 	header := make([]byte, 24)
-	if _, err := io.ReadFull(src, header); err != nil {
+	n, err := io.ReadFull(src, header)
+	if err != nil {
+		log.Printf("Failed to read file header: %v, bytes read: %d", err, n)
 		return render(c, upload.UploadError("Invalid file format"))
 	}
-	if !bytes.Equal(header[:4], []byte(middleware.PCAPMagicLE)) &&
-		!bytes.Equal(header[:4], []byte(middleware.PCAPMagicBE)) &&
-		!bytes.Equal(header[:4], []byte(middleware.PCAPMagicNS)) {
-		return render(c, upload.UploadError("Invalid PCAP file signature"))
+
+	// Log the first 4 bytes for debugging
+	log.Printf("File header (first 4 bytes): [%x %x %x %x]", header[0], header[1], header[2], header[3])
+
+	// Check for standard PCAP formats
+	isPcap := bytes.Equal(header[:4], []byte(middleware.PCAPMagicLE)) ||
+		bytes.Equal(header[:4], []byte(middleware.PCAPMagicBE)) ||
+		bytes.Equal(header[:4], []byte(middleware.PCAPMagicNS))
+
+	// Check for PCAPNG format (0x0A0D0D0A)
+	isPcapNg := bytes.Equal(header[:4], []byte{0x0A, 0x0D, 0x0D, 0x0A})
+
+	if !isPcap && !isPcapNg {
+		log.Printf("Invalid PCAP signature: %x", header[:4])
+		return render(c, upload.UploadError("Invalid PCAP signature. Supported formats: PCAP, PCAPNG"))
 	}
 
 	// Reset file reader
 	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		log.Printf("Failed to reset file reader: %v", err)
 		return render(c, upload.UploadError(fmt.Sprintf("Failed to reset file reader: %v", err)))
 	}
 
-	// Ensure uploads directory exists
+	// Ensure uploads directory exists with proper permissions
 	if err := os.MkdirAll("uploads", 0755); err != nil {
+		log.Printf("Failed to create uploads directory: %v", err)
 		return render(c, upload.UploadError(fmt.Sprintf("Failed to create uploads directory: %v", err)))
 	}
 
@@ -115,16 +136,23 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 	uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(file.Filename))
 	dstPath := filepath.Join("uploads", uniqueFilename)
 
-	// Save file
+	// Create destination file
 	dst, err := os.Create(dstPath)
 	if err != nil {
+		log.Printf("Failed to create destination file: %v", err)
 		return render(c, upload.UploadError(fmt.Sprintf("Failed to save file: %v", err)))
 	}
 	defer dst.Close()
 
-	if _, err := io.Copy(dst, src); err != nil {
-		return render(c, upload.UploadError(fmt.Sprintf("Failed to copy file: %v", err)))
+	// Copy file contents
+	bytesWritten, err := io.Copy(dst, src)
+	if err != nil {
+		log.Printf("Failed to copy file contents: %v", err)
+		return render(c, upload.UploadError(fmt.Sprintf("Failed to save file: %v", err)))
 	}
+
+	// Log success
+	log.Printf("Successfully uploaded file: %s to %s (%d bytes written)", file.Filename, dstPath, bytesWritten)
 
 	// Return success response
 	return render(c, upload.UploadSuccess(file.Filename))
