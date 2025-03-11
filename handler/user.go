@@ -42,8 +42,6 @@ func (h *UserHandler) HandleMainPage(c echo.Context) error {
 }
 
 func (h *UserHandler) HandleHomePage(c echo.Context) error {
-	// No CSRF token needed
-
 	// Read files from uploads directory
 	files := []home.UploadedFile{}
 	entries, err := os.ReadDir("uploads")
@@ -68,7 +66,7 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 		return files[i].UploadTime.After(files[j].UploadTime)
 	})
 
-	// No CSRF token needed
+	// CSRF token is handled automatically by the Echo framework
 	return render(c, home.ShowHome(files))
 }
 

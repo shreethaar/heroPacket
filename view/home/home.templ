@@ -34,8 +34,8 @@ templ Show() {
 </body>
 }
 
-// Dashboard template (with CSRF and file upload)
-templ ShowHome(csrfToken string, files []UploadedFile) {
+// Dashboard template (file upload without CSRF)
+templ ShowHome(files []UploadedFile) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -240,14 +240,11 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
 
       // Handle delete confirmation
       confirmBtn.addEventListener('click', function() {
-        // CSRF token removed for now
-        
-        // Send delete request
+        // Simple DELETE request without CSRF
         fetch(`/delete/${currentFileName}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
-            // CSRF header removed
           }
         })
         .then(response => {

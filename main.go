@@ -7,12 +7,18 @@ import (
 	"github.com/labstack/echo/middleware"
 )
 
-// Register routes
-func registerRoutes(e *echo.Echo, userHandler *handler.UserHandler) {
-	// Apply middleware to all routes
+func main() {
+	// Create a new Echo instance
+	e := echo.New()
+
+	// Add only the middleware we want
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	// CSRF middleware completely removed
+
+	// No CSRF middleware
+
+	// Initialize user handler
+	userHandler := handler.NewUserHandler()
 
 	// Public routes
 	e.GET("/", userHandler.HandleMainPage)
@@ -31,11 +37,7 @@ func registerRoutes(e *echo.Echo, userHandler *handler.UserHandler) {
 
 	// Serve static files
 	e.Static("/static", "static")
-}
 
-func main() {
-	e := echo.New()
-	userHandler := handler.NewUserHandler() // Use the constructor to properly initialize
-	registerRoutes(e, userHandler)
+	// Start server
 	e.Start(":8080")
 }
