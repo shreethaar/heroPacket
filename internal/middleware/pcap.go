@@ -66,7 +66,25 @@ func ValidateAndSavePCAP(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		defer src.Close()
 
-		// Calculate MD5 hash
+		// Read first 24 bytes for validation
+		header := make([]byte, 24)
+		if _, err := io.ReadFull(src, header); err != nil {
+			return render(c, home.UploadResponse{
+				Status:  "error",
+				Message: "Invalid file format",
+			})
+		}
+
+		// Validate magic number
+		magicNum := string(header[:4])
+		if magicNum != PCAPMagicLE && magicNum != PCAPMagicBE && magicNum != PCAPMagicNS {
+			return render(c, home.UploadResponse{
+				Status:  "error",
+				Message: "Invalid PCAP file format",
+			})
+		}
+
+		// Create a hash of the remaining content
 		hash := md5.New()
 		if _, err := io.Copy(hash, src); err != nil {
 			return render(c, home.UploadResponse{
@@ -87,32 +105,7 @@ func ValidateAndSavePCAP(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		hashMutex.RUnlock()
 
-		// Reset file pointer for validation and saving
-		if _, err := src.Seek(0, io.SeekStart); err != nil {
-			return render(c, home.UploadResponse{
-				Status:  "error",
-				Message: "Failed to process file",
-			})
-		}
-
-		// Validate magic number
-		header := make([]byte, 24)
-		if _, err := io.ReadFull(src, header); err != nil {
-			return render(c, home.UploadResponse{
-				Status:  "error",
-				Message: "Invalid file format",
-			})
-		}
-
-		magicNum := string(header[:4])
-		if magicNum != PCAPMagicLE && magicNum != PCAPMagicBE && magicNum != PCAPMagicNS {
-			return render(c, home.UploadResponse{
-				Status:  "error",
-				Message: "Invalid PCAP file format",
-			})
-		}
-
-		// Reset file pointer again for saving
+		// Reset file pointer to save the file
 		if _, err := src.Seek(0, io.SeekStart); err != nil {
 			return render(c, home.UploadResponse{
 				Status:  "error",
@@ -157,29 +150,16 @@ func ValidateAndSavePCAP(next echo.HandlerFunc) echo.HandlerFunc {
 		// Set file info in context for next handler
 		c.Set("pcapFile", PCAPFile{
 			FileHeader: file,
-			File:       src,
 			Path:       dstPath,
 		})
 
 		return next(c)
 	}
 }
-
 // Helper function to render responses
 func render(c echo.Context, data interface{}) error {
 	return c.JSON(http.StatusOK, data)
 }
 
 // PCAPValidator is a middleware that validates PCAP files
-func PCAPValidator() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			// Only apply to POST requests to /upload
-			if c.Request().Method != http.MethodPost || c.Path() != "/upload" {
-				return next(c)
-			}
 
-			return next(c)
-		}
-	}
-}
