@@ -60,7 +60,7 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 		os.Remove(pcapFile.Path) // Remove duplicate file
 		return render(c, home.UploadResponseTemplate(home.UploadResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("This file has already been uploaded as %s", existingFile),
+			Message: fmt.Sprintf("This file has already been uploaded as %s", filepath.Base(existingFile)),
 		}))
 	}
 	h.hashMutex.RUnlock()
