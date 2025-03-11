@@ -22,7 +22,7 @@ func main() {
 	// Routes
 	userHandler := handler.NewUserHandler()
 	app.GET("/", userHandler.HandleHomePage)         // Changed to show dashboard on root
-	app.GET("/welcome", userHandler.HandleMainPage)  // Moved welcome page to /welcome
+	//app.GET("/welcome", userHandler.HandleMainPage)  // Moved welcome page to /welcome
 	app.POST("/upload", userHandler.HandleUpload)
 	// Analysis routes
 	app.GET("/analyze/:filename", userHandler.HandleAnalyze)

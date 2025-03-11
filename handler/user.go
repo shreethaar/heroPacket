@@ -7,7 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-
+    "fmt"
+    "path/filepath"
 	"heroPacket/internal/analysis"
 	"heroPacket/internal/middleware"
 	"heroPacket/internal/models"
@@ -67,83 +68,72 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 }
 
 func (h *UserHandler) HandleUpload(c echo.Context) error {
-	if c.Request().Method != http.MethodPost {
-		return c.String(http.StatusMethodNotAllowed, "Method not allowed")
-	}
+    if c.Request().Method != http.MethodPost {
+        return c.String(http.StatusMethodNotAllowed, "Method not allowed")
+    }
 
-	csrfToken := c.Get("csrf").(string)
+    csrfToken := c.Get("csrf").(string)
 
-	// Helper function to get files list
-	getFiles := func() []home.UploadedFile {
-		files := []home.UploadedFile{}
-		entries, err := os.ReadDir("uploads")
-		if err == nil { // Don't fail if directory doesn't exist
-			for _, entry := range entries {
-				if !entry.IsDir() && (strings.HasSuffix(entry.Name(), ".pcap") || strings.HasSuffix(entry.Name(), ".pcapng")) {
-					info, err := entry.Info()
-					if err != nil {
-						continue
-					}
-					files = append(files, home.UploadedFile{
-						Name:       entry.Name(),
-						Size:       info.Size(),
-						UploadTime: info.ModTime(),
-					})
-				}
-			}
-		}
-		sort.Slice(files, func(i, j int) bool {
-			return files[i].UploadTime.After(files[j].UploadTime)
-		})
-		return files
-	}
+    // Retrieve validated file
+    pcapFile, ok := c.Get("pcapFile").(middleware.PCAPFile)
+    if !ok {
+        return c.String(http.StatusBadRequest, "Invalid file upload")
+    }
 
-	// Retrieve validated file
-	pcapFile, ok := c.Get("pcapFile").(middleware.PCAPFile)
-	if !ok {
-		return render(c, home.ShowHome(csrfToken, getFiles())) // Return to home page with error
-	}
+    // Ensure the uploads directory exists
+    if err := os.MkdirAll("uploads", os.ModePerm); err != nil {
+        return c.String(http.StatusInternalServerError, "Failed to create uploads directory")
+    }
 
-	// Process PCAP using analysis package
-	packets, err := analysis.ExtractPackets(pcapFile.Path)
-	if err != nil {
-		return render(c, home.ShowHome(csrfToken, getFiles())) // Return to home page with error
-	}
+    // Generate a unique filename to avoid conflicts
+    uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), pcapFile.FileHeader.Filename)
+    filePath := filepath.Join("uploads", uniqueFilename)
 
-	// Create analysis session
-	sessionID := uuid.New().String()
-	session := analysis.NewSession()
+    // Move the uploaded file to the uploads directory
+    if err := os.Rename(pcapFile.Path, filePath); err != nil {
+        return c.String(http.StatusInternalServerError, "Failed to save file")
+    }
 
-	// Process packets concurrently
-	var wg sync.WaitGroup
-	for _, packet := range packets {
-		wg.Add(1)
-		go func(p models.Packet) { // Changed pcap.Packet to models.Packet
-			defer wg.Done()
-			session.Process(p)
-		}(packet)
-	}
-	wg.Wait()
+    // Process PCAP using analysis package
+    packets, err := analysis.ExtractPackets(filePath)
+    if err != nil {
+        return c.String(http.StatusInternalServerError, "Failed to process PCAP file")
+    }
 
-	// Store session in cache
-	h.cacheMutex.Lock()
-	h.analysisCache[sessionID] = session
-	h.cacheMutex.Unlock()
+    // Create analysis session
+    sessionID := uuid.New().String()
+    session := analysis.NewSession()
 
-	// Set cache expiration
-	go h.clearCacheAfter(sessionID, 30*time.Minute)
+    // Process packets concurrently
+    var wg sync.WaitGroup
+    for _, packet := range packets {
+        wg.Add(1)
+        go func(p models.Packet) {
+            defer wg.Done()
+            session.Process(p)
+        }(packet)
+    }
+    wg.Wait()
 
-	// Prepare view data
-	viewData := upload.ViewData{
-		SessionID:     sessionID,
-		PacketCount:   len(packets),
-		TopProtocols:  session.Protocols().Top(3),
-		TrafficStats:  session.TrafficStats(),
-		Conversations: session.Conversations().Top(5),
-		CSRFToken:     csrfToken, // Add CSRF token
-	}
+    // Store session in cache
+    h.cacheMutex.Lock()
+    h.analysisCache[sessionID] = session
+    h.cacheMutex.Unlock()
 
-	return render(c, upload.Show(viewData)) // Show analysis results
+    // Set cache expiration
+    go h.clearCacheAfter(sessionID, 30*time.Minute)
+
+    // Prepare view data
+    viewData := upload.ViewData{
+        SessionID:     sessionID,
+        PacketCount:   len(packets),
+        TopProtocols:  session.Protocols().Top(3),
+        TrafficStats:  session.TrafficStats(),
+        Conversations: session.Conversations().Top(5),
+        CSRFToken:     csrfToken,
+    }
+
+    return render(c, upload.Show(viewData))
 }
 
 // HTMX Handlers for visualizations
