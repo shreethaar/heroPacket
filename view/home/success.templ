@@ -1,0 +1,8 @@
+package home
+
+// SuccessTemplate renders a success message
+templ SuccessTemplate(message string) {
+  <div class="text-green-500 bg-green-100/10 p-3 rounded-lg font-bold" hx-trigger="load" hx-get="/refresh-files" hx-target="#fileListContainer" hx-swap="outerHTML">
+    { message }
+  </div>
+}

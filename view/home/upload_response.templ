@@ -1,0 +1,14 @@
+package home
+
+// UploadResponseTemplate renders a response for file uploads
+templ UploadResponseTemplate(response UploadResponse) {
+  if response.Status == "error" {
+    <div class="text-red-500 bg-red-100/10 p-3 rounded-lg font-bold">
+      { response.Message }
+    </div>
+  } else if response.Status == "success" {
+    <div class="text-green-500 bg-green-100/10 p-3 rounded-lg font-bold" hx-trigger="load" hx-get="/refresh-files" hx-target="#fileListContainer" hx-swap="outerHTML">
+      { response.Message }
+    </div>
+  }
+}

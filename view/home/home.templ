@@ -94,18 +94,13 @@ templ ShowHome(files []UploadedFile, response *UploadResponse) {
         
         <!-- Form for file upload with HTMX -->
         <form id="uploadForm" 
-          action="/upload"
-          method="POST"
-          enctype="multipart/form-data"
           hx-post="/upload" 
           hx-encoding="multipart/form-data" 
           hx-target="#uploadResponse"
           hx-indicator="#uploadingIndicator"
           hx-trigger="change from:#fileInput"
-          hx-on::after-request="if(event.detail.successful) { document.getElementById('fileInput').value = ''; }"
+          hx-swap="innerHTML"
         >
-          <!-- CSRF token will be automatically added by Echo middleware -->
-          
           <!-- File input -->
           <input 
             type="file" 
@@ -136,14 +131,14 @@ templ ShowHome(files []UploadedFile, response *UploadResponse) {
         </form>
 
         <!-- Response container -->
-        <div id="uploadResponse" class="mt-4 text-center">
+        <div id="uploadResponse" class="mt-4 text-center" hx-swap-oob="true">
           if response != nil {
             if response.Status == "error" {
-              <div class="text-red-500 bg-red-100/10 p-3 rounded-lg border border-red-700">
+              <div class="text-red-500 bg-red-100/10 p-3 rounded-lg font-bold">
                 { response.Message }
               </div>
             } else if response.Status == "success" {
-              <div class="text-green-500 bg-green-100/10 p-3 rounded-lg border border-green-700">
+              <div class="text-green-500 bg-green-100/10 p-3 rounded-lg font-bold">
                 { response.Message }
               </div>
             }
@@ -152,54 +147,14 @@ templ ShowHome(files []UploadedFile, response *UploadResponse) {
       </div>
 
       <!-- Previous uploads table -->
-      if len(files) > 0 {
-        <div class="mt-8 bg-gray-700 rounded-xl p-6 border-2 border-gray-600">
-          <h3 class="text-xl font-semibold text-teal-400 mb-4">Previous Uploads</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead class="bg-gray-800/50">
-                <tr>
-                  <th class="px-6 py-3 rounded-tl-lg border-b-2 border-gray-600">Filename</th>
-                  <th class="px-6 py-3 border-b-2 border-gray-600">Upload Date</th>
-                  <th class="px-6 py-3 border-b-2 border-gray-600">Size</th>
-                  <th class="px-6 py-3 rounded-tr-lg border-b-2 border-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y-2 divide-gray-600">
-                for _, file := range files {
-                  <tr class="hover:bg-gray-600/50">
-                    <td class="px-6 py-4">{ file.Name }</td>
-                    <td class="px-6 py-4">{ file.UploadTime.Format("2006-01-02 15:04:05") }</td>
-                    <td class="px-6 py-4">{ formatFileSize(file.Size) }</td>
-                    <td class="px-6 py-4">
-                      <button 
-                        data-analyze-button
-                        data-filename={ file.Name }
-                        class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-md border border-teal-700 font-medium inline-flex items-center justify-center mr-2"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        Analyze
-                      </button>
-                      <button 
-                        data-delete-button
-                        data-filename={ file.Name }
-                        class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-md border border-red-700 font-medium inline-flex items-center justify-center"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      }
+      <div id="fileListContainer" 
+           hx-get="/refresh-files" 
+           hx-trigger="load">
+        if len(files) > 0 {
+          @FileListTemplate(files)
+        }
+      </div>
+
     </div>
   </div>
 
@@ -208,111 +163,8 @@ templ ShowHome(files []UploadedFile, response *UploadResponse) {
     heroPacket 2025
   </footer>
 
-  <!-- Confirmation Dialog (hidden by default) -->
-  <div id="deleteConfirmDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-gray-800 rounded-xl p-6 border-2 border-gray-600 max-w-md w-full mx-4">
-      <h3 class="text-xl font-semibold text-red-400 mb-4">Confirm Deletion</h3>
-      <p class="text-gray-300 mb-6">Are you sure you want to delete <span id="fileToDelete" class="font-semibold"></span>? This action cannot be undone.</p>
-      <div class="flex justify-end space-x-4">
-        <button id="cancelDelete" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-          Cancel
-        </button>
-        <button id="confirmDelete" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
-          Delete
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scripts -->
-  <script>
-    // Enable analyze buttons
-    function setupAnalyzeButtons() {
-      document.querySelectorAll('[data-analyze-button]').forEach(button => {
-        button.addEventListener('click', function() {
-          const fileName = this.getAttribute('data-filename');
-          window.location.href = `/analyze/${fileName}`;
-        });
-      });
-    }
-
-    // Setup delete buttons and confirmation dialog
-    function setupDeleteButtons() {
-      const dialog = document.getElementById('deleteConfirmDialog');
-      const fileToDeleteSpan = document.getElementById('fileToDelete');
-      const cancelBtn = document.getElementById('cancelDelete');
-      const confirmBtn = document.getElementById('confirmDelete');
-      let currentFileName = '';
-
-      // Show confirmation dialog when delete button is clicked
-      document.querySelectorAll('[data-delete-button]').forEach(button => {
-        button.addEventListener('click', function() {
-          currentFileName = this.getAttribute('data-filename');
-          fileToDeleteSpan.textContent = currentFileName;
-          dialog.classList.remove('hidden');
-        });
-      });
-
-      // Hide dialog when cancel is clicked
-      cancelBtn.addEventListener('click', function() {
-        dialog.classList.add('hidden');
-      });
-
-      // Handle delete confirmation
-      confirmBtn.addEventListener('click', function() {
-        // Simple DELETE request without CSRF
-        fetch(`/delete/${currentFileName}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        })
-        .then(response => {
-          if (response.ok) {
-            // Show success message
-            const successMessage = document.createElement('div');
-            successMessage.className = 'fixed top-4 right-4 bg-teal-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-            successMessage.innerHTML = `<div class="flex items-center"><svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>File deleted successfully</div>`;
-            document.body.appendChild(successMessage);
-            
-            // Remove message after 3 seconds
-            setTimeout(() => {
-              successMessage.remove();
-            }, 3000);
-            
-            // Refresh the page to update the file list
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          } else {
-            // Show error message
-            const errorMessage = document.createElement('div');
-            errorMessage.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-            errorMessage.innerHTML = `<div class="flex items-center"><svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>Failed to delete file</div>`;
-            document.body.appendChild(errorMessage);
-            
-            // Remove message after 3 seconds
-            setTimeout(() => {
-              errorMessage.remove();
-            }, 3000);
-          }
-          
-          // Hide dialog
-          dialog.classList.add('hidden');
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          dialog.classList.add('hidden');
-        });
-      });
-    }
-
-    // Run setup when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-      setupAnalyzeButtons();
-      setupDeleteButtons();
-    });
-  </script>
+  <!-- HTMX Script -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </body>
 }
 

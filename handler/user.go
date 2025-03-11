@@ -1,12 +1,9 @@
 package handler
 
 import (
-	"bytes"
 	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"heroPacket/internal/analysis"
-	"heroPacket/internal/middleware"
 	"heroPacket/view/analytics"
 	"heroPacket/view/docs"
 	"heroPacket/view/home"
@@ -71,155 +68,134 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 }
 
 func (h *UserHandler) HandleUpload(c echo.Context) error {
-	if c.Request().Method != http.MethodPost {
-		return c.String(http.StatusMethodNotAllowed, "Method not allowed")
-	}
+	if c.Request().Method == http.MethodPost {
+		// Get the file from the request
+		file, err := c.FormFile("pcap-file")
+		if err != nil {
+			log.Printf("Error getting file from request: %v", err)
+			return render(c, home.UploadResponseTemplate(home.UploadResponse{
+				Status:  "error",
+				Message: "Failed to get file from request",
+			}))
+		}
 
-	// Check if we have a file from the form
-	file, err := c.FormFile("pcap-file")
-	if err != nil {
-		log.Printf("No file uploaded: %v", err)
-		return c.JSON(http.StatusBadRequest, home.UploadResponse{
-			Status:  "error",
-			Message: "No file uploaded",
-		})
-	}
+		// Check if file is empty
+		if file.Size == 0 {
+			return render(c, home.UploadResponseTemplate(home.UploadResponse{
+				Status:  "error",
+				Message: "File is empty",
+			}))
+		}
 
-	log.Printf("Received file: %s, size: %d bytes", file.Filename, file.Size)
+		// Check file extension
+		filename := file.Filename
+		if !strings.HasSuffix(strings.ToLower(filename), ".pcap") && !strings.HasSuffix(strings.ToLower(filename), ".pcapng") {
+			return render(c, home.UploadResponseTemplate(home.UploadResponse{
+				Status:  "error",
+				Message: "Invalid file type. Only .pcap and .pcapng files are allowed",
+			}))
+		}
 
-	// Check file size
-	if file.Size > middleware.MaxPCAPSize {
-		log.Printf("File size exceeds limit: %d bytes", file.Size)
-		return c.JSON(http.StatusBadRequest, home.UploadResponse{
-			Status:  "error",
-			Message: "File size exceeds the allowed limit",
-		})
-	}
+		// Open the file
+		src, err := file.Open()
+		if err != nil {
+			log.Printf("Error opening file: %v", err)
+			return render(c, home.UploadResponseTemplate(home.UploadResponse{
+				Status:  "error",
+				Message: "Failed to open file",
+			}))
+		}
+		defer src.Close()
 
-	// Open file
-	src, err := file.Open()
-	if err != nil {
-		log.Printf("Failed to open file: %v", err)
-		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Failed to open file: %v", err),
-		})
-	}
-	defer src.Close()
+		// Read the file content for hash calculation
+		fileContent, err := io.ReadAll(src)
+		if err != nil {
+			log.Printf("Error reading file content: %v", err)
+			return render(c, home.UploadResponseTemplate(home.UploadResponse{
+				Status:  "error",
+				Message: "Failed to read file content",
+			}))
+		}
 
-	// Calculate MD5 hash
-	hash := md5.New()
-	tee := io.TeeReader(src, hash)
+		// Calculate MD5 hash of the file
+		hash := md5.Sum(fileContent)
+		hashStr := fmt.Sprintf("%x", hash)
 
-	// Validate magic number
-	header := make([]byte, 24)
-	n, err := io.ReadFull(tee, header)
-	if err != nil {
-		log.Printf("Failed to read file header: %v, bytes read: %d", err, n)
-		return c.JSON(http.StatusBadRequest, home.UploadResponse{
-			Status:  "error",
-			Message: "Invalid file format",
-		})
-	}
-
-	// Log the first 4 bytes for debugging
-	log.Printf("File header (first 4 bytes): [%x %x %x %x]", header[0], header[1], header[2], header[3])
-
-	// Check for standard PCAP formats
-	isPcap := string(header[:4]) == middleware.PCAPMagicLE ||
-		string(header[:4]) == middleware.PCAPMagicBE ||
-		string(header[:4]) == middleware.PCAPMagicNS
-
-	// Check for PCAPNG format (0x0A0D0D0A)
-	isPcapNg := bytes.Equal(header[:4], []byte{0x0A, 0x0D, 0x0D, 0x0A})
-
-	if !isPcap && !isPcapNg {
-		log.Printf("Invalid PCAP signature: %x", header[:4])
-		return c.JSON(http.StatusBadRequest, home.UploadResponse{
-			Status:  "error",
-			Message: "Invalid PCAP signature. Supported formats: PCAP, PCAPNG",
-		})
-	}
-
-	// Read the rest of the file to complete the hash calculation
-	if _, err := io.Copy(io.Discard, tee); err != nil {
-		log.Printf("Failed to calculate file hash: %v", err)
-		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
-			Status:  "error",
-			Message: "Failed to process file",
-		})
-	}
-
-	fileHash := hex.EncodeToString(hash.Sum(nil))
-
-	// Check for duplicate file
-	h.hashMutex.RLock()
-	if existingFile, exists := h.fileHashes[fileHash]; exists {
+		// Check if we already have this file (by hash)
+		h.hashMutex.RLock()
+		existingFilename, exists := h.fileHashes[hashStr]
 		h.hashMutex.RUnlock()
-		return c.JSON(http.StatusConflict, home.UploadResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Duplicate file detected. Already uploaded as: %s", existingFile),
-		})
+
+		if exists {
+			log.Printf("File with hash %s already exists as %s", hashStr, existingFilename)
+			return render(c, home.UploadResponseTemplate(home.UploadResponse{
+				Status:  "error",
+				Message: fmt.Sprintf("This file already exists as %s", existingFilename),
+			}))
+		}
+
+		// Create uploads directory if it doesn't exist
+		if err := os.MkdirAll("uploads", 0755); err != nil {
+			log.Printf("Error creating uploads directory: %v", err)
+			return render(c, home.UploadResponseTemplate(home.UploadResponse{
+				Status:  "error",
+				Message: "Failed to create uploads directory",
+			}))
+		}
+
+		// Generate a unique filename to prevent overwriting
+		// Use the original filename but add a timestamp if needed
+		baseFilename := filepath.Base(filename)
+		uniqueFilename := baseFilename
+		filePath := filepath.Join("uploads", uniqueFilename)
+
+		// Check if file already exists and generate a unique name if needed
+		for i := 1; fileExists(filePath); i++ {
+			ext := filepath.Ext(baseFilename)
+			name := strings.TrimSuffix(baseFilename, ext)
+			uniqueFilename = fmt.Sprintf("%s_%d%s", name, i, ext)
+			filePath = filepath.Join("uploads", uniqueFilename)
+		}
+
+		// Create the destination file
+		dst, err := os.Create(filePath)
+		if err != nil {
+			log.Printf("Error creating destination file: %v", err)
+			return render(c, home.UploadResponseTemplate(home.UploadResponse{
+				Status:  "error",
+				Message: "Failed to create destination file",
+			}))
+		}
+		defer dst.Close()
+
+		// Write the content to the destination file
+		if _, err = dst.Write(fileContent); err != nil {
+			log.Printf("Error writing to destination file: %v", err)
+			return render(c, home.UploadResponseTemplate(home.UploadResponse{
+				Status:  "error",
+				Message: "Failed to write to destination file",
+			}))
+		}
+
+		// Save the hash to filename mapping
+		h.saveFileHash(hashStr, uniqueFilename)
+
+		log.Printf("File uploaded successfully: %s", uniqueFilename)
+		
+		// Get the updated file list
+		files := h.getUploadedFiles()
+		
+		// Set HX-Refresh header to force a refresh of the file list
+		c.Response().Header().Set("HX-Refresh", "true")
+		
+		// Return the updated file list
+		return render(c, home.FileListTemplate(files))
 	}
-	h.hashMutex.RUnlock()
 
-	// Reset file reader
-	if _, err := src.Seek(0, io.SeekStart); err != nil {
-		log.Printf("Failed to reset file reader: %v", err)
-		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Failed to reset file reader: %v", err),
-		})
-	}
-
-	// Ensure uploads directory exists with proper permissions
-	if err := os.MkdirAll("uploads", 0755); err != nil {
-		log.Printf("Failed to create uploads directory: %v", err)
-		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Failed to create uploads directory: %v", err),
-		})
-	}
-
-	// Use the original filename
-	dstPath := filepath.Join("uploads", filepath.Base(file.Filename))
-
-	// Create destination file
-	dst, err := os.Create(dstPath)
-	if err != nil {
-		log.Printf("Failed to create destination file: %v", err)
-		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Failed to save file: %v", err),
-		})
-	}
-	defer dst.Close()
-
-	// Copy file contents
-	bytesWritten, err := io.Copy(dst, src)
-	if err != nil {
-		log.Printf("Failed to copy file contents: %v", err)
-		os.Remove(dstPath) // Clean up partial file
-		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Failed to save file: %v", err),
-		})
-	}
-
-	// Save file hash
-	h.saveFileHash(fileHash, filepath.Base(file.Filename))
-
-	// Log success
-	log.Printf("Successfully uploaded file: %s to %s (%d bytes written)", file.Filename, dstPath, bytesWritten)
-
-	// Return success response
-	return c.JSON(http.StatusOK, home.UploadResponse{
-		Status:  "success",
-		Message: fmt.Sprintf("Successfully uploaded %s", file.Filename),
-	})
+	// If it's not a POST request, just render the upload form
+	return c.HTML(http.StatusOK, "Upload form should be accessed via the home page")
 }
 
-// HTMX Handlers for visualizations
 func (h *UserHandler) ProtocolChart(c echo.Context) error {
 	sessionID := c.Param("sessionID")
 
@@ -228,7 +204,7 @@ func (h *UserHandler) ProtocolChart(c echo.Context) error {
 	h.cacheMutex.RUnlock()
 
 	if !exists {
-		return c.String(http.StatusNotFound, "Session expired")
+		return render(c, home.ErrorTemplate("Session expired"))
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "image/svg+xml")
@@ -243,7 +219,7 @@ func (h *UserHandler) TrafficTimeline(c echo.Context) error {
 	h.cacheMutex.RUnlock()
 
 	if !exists {
-		return c.String(http.StatusNotFound, "Session expired")
+		return render(c, home.ErrorTemplate("Session expired"))
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "image/svg+xml")
@@ -266,7 +242,7 @@ func (h *UserHandler) HandleOverview(c echo.Context) error {
 	filePath := "uploads/" + filename
 	packets, err := analysis.ExtractPackets(filePath)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "Error processing PCAP file")
+		return render(c, home.ErrorTemplate("Error processing PCAP file"))
 	}
 
 	session := analysis.NewSession()
@@ -296,7 +272,7 @@ func (h *UserHandler) HandleAnalytics(c echo.Context) error {
 	filePath := "uploads/" + filename
 	packets, err := analysis.ExtractPackets(filePath)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "Error processing PCAP file")
+		return render(c, home.ErrorTemplate("Error processing PCAP file"))
 	}
 
 	session := analysis.NewSession()
@@ -324,7 +300,7 @@ func (h *UserHandler) HandleAnalyze(c echo.Context) error {
 	// Check if file exists
 	filePath := "uploads/" + filename
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return c.String(http.StatusNotFound, "File not found")
+		return render(c, home.ErrorTemplate("File not found"))
 	}
 
 	// Redirect directly to overview page with filename
@@ -335,22 +311,22 @@ func (h *UserHandler) HandleAnalyze(c echo.Context) error {
 func (h *UserHandler) HandleDeleteFile(c echo.Context) error {
 	filename := c.Param("filename")
 	if filename == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No filename provided"})
+		return render(c, home.ErrorTemplate("No filename provided"))
 	}
 
 	// Ensure the filename is safe and within the uploads directory
-	filePath := filepath.Join("uploads", filename)
+	filePath := filepath.Join("uploads", filepath.Base(filename))
 
 	// Check if file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		log.Printf("File not found for deletion: %s", filePath)
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "File not found"})
+		return render(c, home.ErrorTemplate("File not found"))
 	}
 
 	// Delete the file
 	if err := os.Remove(filePath); err != nil {
 		log.Printf("Error deleting file %s: %v", filePath, err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete file"})
+		return render(c, home.ErrorTemplate("Failed to delete file"))
 	}
 
 	// If we have a hash for this file, remove it from our hash map
@@ -364,7 +340,15 @@ func (h *UserHandler) HandleDeleteFile(c echo.Context) error {
 	h.hashMutex.Unlock()
 
 	log.Printf("Successfully deleted file: %s", filePath)
-	return c.JSON(http.StatusOK, map[string]string{"message": "File deleted successfully"})
+	
+	// Get the updated file list
+	files := h.getUploadedFiles()
+	
+	// Set HX-Refresh header to force a refresh of the file list
+	c.Response().Header().Set("HX-Refresh", "true")
+	
+	// Return the updated file list
+	return render(c, home.FileListTemplate(files))
 }
 
 // saveFileHash saves the hash to filename mapping
@@ -372,4 +356,45 @@ func (h *UserHandler) saveFileHash(hash string, filename string) {
 	h.hashMutex.Lock()
 	defer h.hashMutex.Unlock()
 	h.fileHashes[hash] = filename
+}
+
+// getUploadedFiles returns the list of uploaded files
+func (h *UserHandler) getUploadedFiles() []home.UploadedFile {
+	files := []home.UploadedFile{}
+	entries, err := os.ReadDir("uploads")
+	if err == nil { // Don't fail if directory doesn't exist
+		for _, entry := range entries {
+			if !entry.IsDir() && (strings.HasSuffix(entry.Name(), ".pcap") || strings.HasSuffix(entry.Name(), ".pcapng")) {
+				info, err := entry.Info()
+				if err != nil {
+					continue
+				}
+				files = append(files, home.UploadedFile{
+					Name:       entry.Name(),
+					Size:       info.Size(),
+					UploadTime: info.ModTime(),
+				})
+			}
+		}
+	}
+
+	// Sort files by upload time, newest first
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].UploadTime.After(files[j].UploadTime)
+	})
+
+	return files
+}
+
+// HandleRefreshFiles handles the AJAX request to refresh the file list
+func (h *UserHandler) HandleRefreshFiles(c echo.Context) error {
+	// Read files from uploads directory
+	files := h.getUploadedFiles()
+
+	return render(c, home.FileListTemplate(files))
+}
+
+func fileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	return err == nil
 }

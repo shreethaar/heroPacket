@@ -43,7 +43,8 @@ func main() {
 	e.GET("/upload", userHandler.HandleUpload)
 	e.POST("/upload", userHandler.HandleUpload)
 	e.GET("/analyze/:filename", userHandler.HandleAnalyze)
-	e.DELETE("/delete/:filename", userHandler.HandleDeleteFile)
+	e.DELETE("/delete-file/:filename", userHandler.HandleDeleteFile)
+	e.GET("/refresh-files", userHandler.HandleRefreshFiles)
 
 	// Analysis routes
 	e.GET("/overview/:filename", userHandler.HandleOverview)
