@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"heroPacket/internal/analysis"
-	"heroPacket/view/analytics"
 	"heroPacket/view/docs"
 	"heroPacket/view/home"
 	"heroPacket/view/overview"
@@ -39,7 +38,101 @@ func (h *UserHandler) HandleMainPage(c echo.Context) error {
 }
 
 func (h *UserHandler) HandleHomePage(c echo.Context) error {
-	// Read files from uploads directory
+	files := h.getUploadedFiles()
+	return render(c, home.ShowHome(files, nil))
+}
+
+// HandleUpload handles file upload requests
+func (h *UserHandler) HandleUpload(c echo.Context) error {
+	// Get the file from the request
+	file, err := c.FormFile("file")
+	if err != nil {
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "No file uploaded",
+		}))
+	}
+
+	// Validate file size (100MB limit)
+	if file.Size > 100*1024*1024 {
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "File size exceeds 100MB limit",
+		}))
+	}
+
+	// Open the uploaded file
+	src, err := file.Open()
+	if err != nil {
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to read uploaded file",
+		}))
+	}
+	defer src.Close()
+
+	// Create uploads directory if it doesn't exist
+	if err := os.MkdirAll("uploads", 0755); err != nil {
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to create uploads directory",
+		}))
+	}
+
+	// Create destination file
+	dst, err := os.Create(filepath.Join("uploads", file.Filename))
+	if err != nil {
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to create destination file",
+		}))
+	}
+	defer dst.Close()
+
+	// Calculate MD5 hash while copying
+	hash := md5.New()
+	if _, err = io.Copy(io.MultiWriter(dst, hash), src); err != nil {
+		os.Remove(dst.Name()) // Clean up on error
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to save file",
+		}))
+	}
+
+	// Convert hash to string
+	hashStr := fmt.Sprintf("%x", hash.Sum(nil))
+
+	// Check if this file has been uploaded before
+	h.hashMutex.RLock()
+	if existingFile, exists := h.fileHashes[hashStr]; exists {
+		h.hashMutex.RUnlock()
+		os.Remove(dst.Name()) // Remove the duplicate file
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("This file has already been uploaded as %s", existingFile),
+		}))
+	}
+	h.hashMutex.RUnlock()
+
+	// Save the hash mapping
+	h.saveFileHash(hashStr, file.Filename)
+
+	// Return success message and trigger file list update
+	c.Response().Header().Set("HX-Trigger", "fileListUpdate")
+	return render(c, home.UploadResponseTemplate(home.UploadResponse{
+		Status:  "success",
+		Message: "File uploaded successfully",
+	}))
+}
+
+// HandleRefreshFiles handles the AJAX request to refresh the file list
+func (h *UserHandler) HandleRefreshFiles(c echo.Context) error {
+	files := h.getUploadedFiles()
+	return render(c, home.FileListTemplate(files))
+}
+
+// getUploadedFiles returns a list of uploaded files with details
+func (h *UserHandler) getUploadedFiles() []home.UploadedFile {
 	files := []home.UploadedFile{}
 	entries, err := os.ReadDir("uploads")
 	if err == nil { // Don't fail if directory doesn't exist
@@ -63,167 +156,7 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 		return files[i].UploadTime.After(files[j].UploadTime)
 	})
 
-	// CSRF token is handled automatically by the Echo framework
-	return render(c, home.ShowHome(files, nil))
-}
-
-func (h *UserHandler) HandleUpload(c echo.Context) error {
-	if c.Request().Method == http.MethodPost {
-		// Get the file from the request
-		file, err := c.FormFile("pcap-file")
-		if err != nil {
-			log.Printf("Error getting file from request: %v", err)
-			return render(c, home.UploadResponseTemplate(home.UploadResponse{
-				Status:  "error",
-				Message: "Failed to get file from request",
-			}))
-		}
-
-		// Check if file is empty
-		if file.Size == 0 {
-			return render(c, home.UploadResponseTemplate(home.UploadResponse{
-				Status:  "error",
-				Message: "File is empty",
-			}))
-		}
-
-		// Check file extension
-		filename := file.Filename
-		if !strings.HasSuffix(strings.ToLower(filename), ".pcap") && !strings.HasSuffix(strings.ToLower(filename), ".pcapng") {
-			return render(c, home.UploadResponseTemplate(home.UploadResponse{
-				Status:  "error",
-				Message: "Invalid file type. Only .pcap and .pcapng files are allowed",
-			}))
-		}
-
-		// Open the file
-		src, err := file.Open()
-		if err != nil {
-			log.Printf("Error opening file: %v", err)
-			return render(c, home.UploadResponseTemplate(home.UploadResponse{
-				Status:  "error",
-				Message: "Failed to open file",
-			}))
-		}
-		defer src.Close()
-
-		// Read the file content for hash calculation
-		fileContent, err := io.ReadAll(src)
-		if err != nil {
-			log.Printf("Error reading file content: %v", err)
-			return render(c, home.UploadResponseTemplate(home.UploadResponse{
-				Status:  "error",
-				Message: "Failed to read file content",
-			}))
-		}
-
-		// Calculate MD5 hash of the file
-		hash := md5.Sum(fileContent)
-		hashStr := fmt.Sprintf("%x", hash)
-
-		// Check if we already have this file (by hash)
-		h.hashMutex.RLock()
-		existingFilename, exists := h.fileHashes[hashStr]
-		h.hashMutex.RUnlock()
-
-		if exists {
-			log.Printf("File with hash %s already exists as %s", hashStr, existingFilename)
-			return render(c, home.UploadResponseTemplate(home.UploadResponse{
-				Status:  "error",
-				Message: fmt.Sprintf("This file already exists as %s", existingFilename),
-			}))
-		}
-
-		// Create uploads directory if it doesn't exist
-		if err := os.MkdirAll("uploads", 0755); err != nil {
-			log.Printf("Error creating uploads directory: %v", err)
-			return render(c, home.UploadResponseTemplate(home.UploadResponse{
-				Status:  "error",
-				Message: "Failed to create uploads directory",
-			}))
-		}
-
-		// Generate a unique filename to prevent overwriting
-		// Use the original filename but add a timestamp if needed
-		baseFilename := filepath.Base(filename)
-		uniqueFilename := baseFilename
-		filePath := filepath.Join("uploads", uniqueFilename)
-
-		// Check if file already exists and generate a unique name if needed
-		for i := 1; fileExists(filePath); i++ {
-			ext := filepath.Ext(baseFilename)
-			name := strings.TrimSuffix(baseFilename, ext)
-			uniqueFilename = fmt.Sprintf("%s_%d%s", name, i, ext)
-			filePath = filepath.Join("uploads", uniqueFilename)
-		}
-
-		// Create the destination file
-		dst, err := os.Create(filePath)
-		if err != nil {
-			log.Printf("Error creating destination file: %v", err)
-			return render(c, home.UploadResponseTemplate(home.UploadResponse{
-				Status:  "error",
-				Message: "Failed to create destination file",
-			}))
-		}
-		defer dst.Close()
-
-		// Write the content to the destination file
-		if _, err = dst.Write(fileContent); err != nil {
-			log.Printf("Error writing to destination file: %v", err)
-			return render(c, home.UploadResponseTemplate(home.UploadResponse{
-				Status:  "error",
-				Message: "Failed to write to destination file",
-			}))
-		}
-
-		// Save the hash to filename mapping
-		h.saveFileHash(hashStr, uniqueFilename)
-
-		log.Printf("File uploaded successfully: %s", uniqueFilename)
-		
-		// Get the updated file list
-		files := h.getUploadedFiles()
-		
-		// Set HX-Refresh header to force a refresh of the file list
-		c.Response().Header().Set("HX-Refresh", "true")
-		
-		// Return the updated file list
-		return render(c, home.FileListTemplate(files))
-	}
-
-	// If it's not a POST request, just render the upload form
-	return c.HTML(http.StatusOK, "Upload form should be accessed via the home page")
-}
-
-func (h *UserHandler) ProtocolChart(c echo.Context) error {
-	sessionID := c.Param("sessionID")
-
-	h.cacheMutex.RLock()
-	session, exists := h.analysisCache[sessionID]
-	h.cacheMutex.RUnlock()
-
-	if !exists {
-		return render(c, home.ErrorTemplate("Session expired"))
-	}
-
-	c.Response().Header().Set(echo.HeaderContentType, "image/svg+xml")
-	return session.ProtocolChart().Render(c.Response().Writer)
-}
-
-func (h *UserHandler) TrafficTimeline(c echo.Context) error {
-	sessionID := c.Param("sessionID")
-
-	h.cacheMutex.RLock()
-	session, exists := h.analysisCache[sessionID]
-	h.cacheMutex.RUnlock()
-
-	if !exists {
-		return render(c, home.ErrorTemplate("Session expired"))
-	}
-
-	c.Response().Header().Set(echo.HeaderContentType, "image/svg+xml")
-	return session.TrafficTimeline().Render(c.Response().Writer)
+	return files
 }
 
 func (h *UserHandler) HandleOverview(c echo.Context) error {
@@ -265,7 +198,13 @@ func (h *UserHandler) HandleOverview(c echo.Context) error {
 func (h *UserHandler) HandleAnalytics(c echo.Context) error {
 	filename := c.Param("filename")
 	if filename == "" {
-		return render(c, analytics.Show(analytics.ViewData{}))
+		return render(c, overview.Show(overview.ViewData{
+			TrafficStats:  &analysis.TrafficStats{},
+			TopProtocols:  []analysis.ProtocolCount{},
+			Conversations: []*analysis.Conversation{},
+			NetworkNodes:  []*analysis.NetworkNode{},
+			DNSQueries:    []analysis.QueryCount{},
+		}))
 	}
 
 	// Process file and create session
@@ -280,14 +219,14 @@ func (h *UserHandler) HandleAnalytics(c echo.Context) error {
 		session.Process(packet)
 	}
 
-	viewData := analytics.ViewData{
+	viewData := overview.ViewData{
 		Filename:      filename,
 		TrafficStats:  session.TrafficStats(),
 		TopProtocols:  session.Protocols().Top(10),
 		Conversations: session.Conversations().Top(10),
 	}
 
-	return render(c, analytics.Show(viewData))
+	return render(c, overview.Show(viewData))
 }
 
 func (h *UserHandler) HandleDocs(c echo.Context) error {
@@ -362,40 +301,34 @@ func (h *UserHandler) saveFileHash(hash string, filename string) {
 	h.fileHashes[hash] = filename
 }
 
-// getUploadedFiles returns the list of uploaded files
-func (h *UserHandler) getUploadedFiles() []home.UploadedFile {
-	files := []home.UploadedFile{}
-	entries, err := os.ReadDir("uploads")
-	if err == nil { // Don't fail if directory doesn't exist
-		for _, entry := range entries {
-			if !entry.IsDir() && (strings.HasSuffix(entry.Name(), ".pcap") || strings.HasSuffix(entry.Name(), ".pcapng")) {
-				info, err := entry.Info()
-				if err != nil {
-					continue
-				}
-				files = append(files, home.UploadedFile{
-					Name:       entry.Name(),
-					Size:       info.Size(),
-					UploadTime: info.ModTime(),
-				})
-			}
-		}
+func (h *UserHandler) ProtocolChart(c echo.Context) error {
+	sessionID := c.Param("sessionID")
+
+	h.cacheMutex.RLock()
+	session, exists := h.analysisCache[sessionID]
+	h.cacheMutex.RUnlock()
+
+	if !exists {
+		return render(c, home.ErrorTemplate("Session expired"))
 	}
 
-	// Sort files by upload time, newest first
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].UploadTime.After(files[j].UploadTime)
-	})
-
-	return files
+	c.Response().Header().Set(echo.HeaderContentType, "image/svg+xml")
+	return session.ProtocolChart().Render(c.Response().Writer)
 }
 
-// HandleRefreshFiles handles the AJAX request to refresh the file list
-func (h *UserHandler) HandleRefreshFiles(c echo.Context) error {
-	// Read files from uploads directory
-	files := h.getUploadedFiles()
+func (h *UserHandler) TrafficTimeline(c echo.Context) error {
+	sessionID := c.Param("sessionID")
 
-	return render(c, home.FileListTemplate(files))
+	h.cacheMutex.RLock()
+	session, exists := h.analysisCache[sessionID]
+	h.cacheMutex.RUnlock()
+
+	if !exists {
+		return render(c, home.ErrorTemplate("Session expired"))
+	}
+
+	c.Response().Header().Set(echo.HeaderContentType, "image/svg+xml")
+	return session.TrafficTimeline().Render(c.Response().Writer)
 }
 
 func fileExists(filePath string) bool {
