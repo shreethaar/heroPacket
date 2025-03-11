@@ -30,13 +30,13 @@ func main() {
 	// Routes
 	userHandler := handler.NewUserHandler()
 	app.GET("/", userHandler.HandleMainPage)
-	app.GET("/home", userHandler.HandleHomePage)
+	//app.GET("/home", userHandler.HandleHomePage)
 	app.POST("/upload", userHandler.HandleUpload)
 	app.GET("/refresh-files", userHandler.HandleRefreshFiles)
 	app.GET("/analytics/:filename", userHandler.HandleOverview)
-	app.GET("/docs", userHandler.HandleDocs)
-	app.GET("/protocol-chart/:sessionID", userHandler.ProtocolChart)
-	app.GET("/traffic-timeline/:sessionID", userHandler.TrafficTimeline)
+	//app.GET("/docs", userHandler.HandleDocs)                  
+	//app.GET("/protocol-chart/:sessionID", userHandler.ProtocolChart)
+	//app.GET("/traffic-timeline/:sessionID", userHandler.TrafficTimeline)
 
 	// Start server
 	if err := app.Start(":8080"); err != nil {
