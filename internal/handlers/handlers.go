@@ -13,12 +13,11 @@ import (
 	"time"
 
 	"github.com/google/gopacket"
-"
+	"github.com/labstack/echo/v4"
 
 	"heroPacket/internal/models"
 	"heroPacket/internal/pcap"
-	"heroPacket/internal/templates/components"
-	"heroPacket/internal/templates/layouts"
+	"heroPacket/view/home"
 )
 
 var (
@@ -27,65 +26,88 @@ var (
 )
 
 // Home handles the root route
-func Home(w http.ResponseWriter, r *http.Request) {
-	if err := layouts.Base(components.Upload()).Render(context.Background(), w); err != nil {
-		log.Printf("Error rendering home template: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
+func Home(c echo.Context) error {
+	files := []home.UploadedFile{} // Get your files list here
+	return home.Show().Render(context.Background(), c.Response().Writer)
+}
+
+// ShowHome handles the dashboard route
+func ShowHome(c echo.Context) error {
+	files := []home.UploadedFile{} // Get your files list here
+	return home.ShowHome(files, nil).Render(context.Background(), c.Response().Writer)
 }
 
 // UploadPCAP handles PCAP file uploads
-func UploadPCAP(w http.ResponseWriter, r *http.Request) {
-	// Parse multipart form
-	if err := r.ParseMultipartForm(32 << 20); err != nil { // 32MB max
-		log.Printf("Failed to parse multipart form: %v", err)
-		http.Error(w, "Invalid file upload", http.StatusBadRequest)
-		return
-	}
-
-	file, header, err := r.FormFile("pcap")
+func UploadPCAP(c echo.Context) error {
+	// Get the file from the request
+	file, err := c.FormFile("pcap-file")
 	if err != nil {
-		log.Printf("Failed to get PCAP file: %v", err)
-		http.Error(w, "Missing or invalid PCAP file", http.StatusBadRequest)
-		return
+		return home.ShowHome(nil, &home.UploadResponse{
+			Status:  "error",
+			Message: "Missing or invalid PCAP file",
+		}).Render(context.Background(), c.Response().Writer)
 	}
-	defer file.Close()
 
-	// Validate file extension
-	if !strings.HasSuffix(strings.ToLower(header.Filename), ".pcap") {
-		http.Error(w, "Only .pcap files are allowed", http.StatusBadRequest)
-		return
+	// Check file extension
+	if !strings.HasSuffix(strings.ToLower(file.Filename), ".pcap") {
+		return home.ShowHome(nil, &home.UploadResponse{
+			Status:  "error",
+			Message: "Only .pcap files are allowed",
+		}).Render(context.Background(), c.Response().Writer)
 	}
 
 	// Create uploads directory if it doesn't exist
 	uploadsDir := "./uploads"
 	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
 		log.Printf("Failed to create uploads directory: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return home.ShowHome(nil, &home.UploadResponse{
+			Status:  "error",
+			Message: "Internal server error",
+		}).Render(context.Background(), c.Response().Writer)
 	}
 
 	// Generate unique filename
 	timestamp := time.Now().Unix()
-	filename := fmt.Sprintf("%d_%s", timestamp, filepath.Clean(header.Filename))
+	filename := fmt.Sprintf("%d_%s", timestamp, filepath.Clean(file.Filename))
 	filePath := filepath.Join(uploadsDir, filename)
+
+	// Check for duplicate file
+	if _, err := os.Stat(filePath); err == nil {
+		return home.ShowHome(nil, &home.UploadResponse{
+			Status:  "error",
+			Message: "File already exists",
+		}).Render(context.Background(), c.Response().Writer)
+	}
+
+	// Open uploaded file
+	src, err := file.Open()
+	if err != nil {
+		return home.ShowHome(nil, &home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to process uploaded file",
+		}).Render(context.Background(), c.Response().Writer)
+	}
+	defer src.Close()
 
 	// Create destination file
 	dst, err := os.Create(filePath)
 	if err != nil {
 		log.Printf("Failed to create destination file: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return home.ShowHome(nil, &home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to save file",
+		}).Render(context.Background(), c.Response().Writer)
 	}
 	defer dst.Close()
 
 	// Copy uploaded file
-	if _, err = io.Copy(dst, file); err != nil {
+	if _, err = io.Copy(dst, src); err != nil {
 		log.Printf("Failed to save uploaded file: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		os.Remove(filePath) // Clean up partial file
-		return
+		return home.ShowHome(nil, &home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to save file",
+		}).Render(context.Background(), c.Response().Writer)
 	}
 
 	// Create new analysis job
@@ -105,12 +127,14 @@ func UploadPCAP(w http.ResponseWriter, r *http.Request) {
 	// Start analysis in background
 	go analyzeFile(job, filePath)
 
-	// Render initial status
-	if err := components.AnalysisStatus(job).Render(context.Background(), w); err != nil {
-		log.Printf("Error rendering analysis status: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
+	// Get list of files for display
+	files := []home.UploadedFile{} // Get your files list here
+
+	// Return success response
+	return home.ShowHome(files, &home.UploadResponse{
+		Status:  "success",
+		Message: "File uploaded successfully",
+	}).Render(context.Background(), c.Response().Writer)
 }
 
 // analyzeFile processes the uploaded PCAP file

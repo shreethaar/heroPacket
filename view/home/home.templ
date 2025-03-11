@@ -12,6 +12,12 @@ type UploadedFile struct {
 	UploadTime time.Time
 }
 
+// Add response type for upload status
+type UploadResponse struct {
+	Status  string
+	Message string
+}
+
 // Landing page template (no CSRF needed)
 templ Show() {
 <head>
@@ -35,7 +41,7 @@ templ Show() {
 }
 
 // Dashboard template (file upload without CSRF)
-templ ShowHome(files []UploadedFile) {
+templ ShowHome(files []UploadedFile, response *UploadResponse) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -96,17 +102,11 @@ templ ShowHome(files []UploadedFile) {
           hx-target="#uploadResponse"
           hx-indicator="#uploadingIndicator"
           hx-trigger="change from:#fileInput"
+          hx-on::after-request="if(event.detail.successful) { document.getElementById('fileInput').value = ''; }"
         >
           <!-- CSRF token will be automatically added by Echo middleware -->
           
-          <!-- Button to trigger file input -->
-          <label for="fileInput" class="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 mx-auto cursor-pointer inline-flex items-center justify-center shadow-lg border border-teal-700 font-medium transition-all duration-200 transform hover:translate-y-[-2px]">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            Upload PCAP
-          </label>
-          
+          <!-- File input -->
           <input 
             type="file" 
             id="fileInput" 
@@ -115,8 +115,16 @@ templ ShowHome(files []UploadedFile) {
             class="hidden"
           />
             
-          <!-- Loading indicator - hidden by default, shown during upload -->
-          <div id="uploadingIndicator" class="htmx-indicator mt-4 hidden">
+          <!-- Button to trigger file input -->
+          <label for="fileInput" class="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 mx-auto cursor-pointer inline-flex items-center justify-center shadow-lg border border-teal-700 font-medium transition-all duration-200 transform hover:translate-y-[-2px]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Upload PCAP
+          </label>
+
+          <!-- Loading indicator -->
+          <div id="uploadingIndicator" class="htmx-indicator mt-4">
             <div class="flex justify-center items-center">
               <svg class="animate-spin h-5 w-5 text-teal-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -128,7 +136,19 @@ templ ShowHome(files []UploadedFile) {
         </form>
 
         <!-- Response container -->
-        <div id="uploadResponse" class="mt-4 text-center"></div>
+        <div id="uploadResponse" class="mt-4 text-center">
+          if response != nil {
+            if response.Status == "error" {
+              <div class="text-red-500 bg-red-100/10 p-3 rounded-lg border border-red-700">
+                { response.Message }
+              </div>
+            } else if response.Status == "success" {
+              <div class="text-green-500 bg-green-100/10 p-3 rounded-lg border border-green-700">
+                { response.Message }
+              </div>
+            }
+          }
+        </div>
       </div>
 
       <!-- Previous uploads table -->

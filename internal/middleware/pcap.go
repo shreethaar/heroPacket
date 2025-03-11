@@ -1,16 +1,19 @@
 package middleware
 
 import (
-	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo"
+	"heroPacket/view/home"
 )
 
 type PCAPFile struct {
@@ -19,45 +22,101 @@ type PCAPFile struct {
 	Path       string
 }
 
+// Store for keeping track of file hashes
+var (
+	fileHashes = make(map[string]string) // map[hash]filename
+	hashMutex  sync.RWMutex
+)
+
 func ValidateAndSavePCAP(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Validate file upload
+		// Get the file from the request
 		file, err := c.FormFile("pcap-file")
 		if err != nil {
-			return c.String(http.StatusBadRequest, "No file uploaded")
+			return c.JSON(http.StatusBadRequest, home.UploadResponse{
+				Status:  "error",
+				Message: "No file uploaded",
+			})
 		}
 
 		// Check file size
 		if file.Size > MaxPCAPSize {
-			return c.String(http.StatusBadRequest, "File size exceeds the allowed limit")
+			return c.JSON(http.StatusBadRequest, home.UploadResponse{
+				Status:  "error",
+				Message: "File size exceeds the allowed limit",
+			})
 		}
 
 		// Open file
 		src, err := file.Open()
 		if err != nil {
-			return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to open file: %v", err))
+			return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+				Status:  "error",
+				Message: fmt.Sprintf("Failed to open file: %v", err),
+			})
 		}
 		defer src.Close()
+
+		// Calculate MD5 hash
+		hash := md5.New()
+		if _, err := io.Copy(hash, src); err != nil {
+			return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+				Status:  "error",
+				Message: "Failed to calculate file hash",
+			})
+		}
+		fileHash := hex.EncodeToString(hash.Sum(nil))
+
+		// Check for duplicate file
+		hashMutex.RLock()
+		if existingFile, exists := fileHashes[fileHash]; exists {
+			hashMutex.RUnlock()
+			return c.JSON(http.StatusConflict, home.UploadResponse{
+				Status:  "error",
+				Message: fmt.Sprintf("Duplicate file detected. Already uploaded as: %s", existingFile),
+			})
+		}
+		hashMutex.RUnlock()
+
+		// Reset file pointer for validation and saving
+		if _, err := src.Seek(0, io.SeekStart); err != nil {
+			return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+				Status:  "error",
+				Message: "Failed to process file",
+			})
+		}
 
 		// Validate magic number
 		header := make([]byte, 24)
 		if _, err := io.ReadFull(src, header); err != nil {
-			return c.String(http.StatusBadRequest, "Invalid file format")
-		}
-		if !bytes.Equal(header[:4], []byte(PCAPMagicLE)) &&
-			!bytes.Equal(header[:4], []byte(PCAPMagicBE)) &&
-			!bytes.Equal(header[:4], []byte(PCAPMagicNS)) {
-			return c.String(http.StatusBadRequest, "Invalid PCAP file signature")
+			return c.JSON(http.StatusBadRequest, home.UploadResponse{
+				Status:  "error",
+				Message: "Invalid file format",
+			})
 		}
 
-		// Reset file reader
+		magicNum := string(header[:4])
+		if magicNum != PCAPMagicLE && magicNum != PCAPMagicBE && magicNum != PCAPMagicNS {
+			return c.JSON(http.StatusBadRequest, home.UploadResponse{
+				Status:  "error",
+				Message: "Invalid PCAP file format",
+			})
+		}
+
+		// Reset file pointer again for saving
 		if _, err := src.Seek(0, io.SeekStart); err != nil {
-			return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to reset file reader: %v", err))
+			return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+				Status:  "error",
+				Message: "Failed to process file",
+			})
 		}
 
 		// Ensure uploads directory exists
 		if err := os.MkdirAll(UploadsDir, 0755); err != nil {
-			return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to create uploads directory: %v", err))
+			return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+				Status:  "error",
+				Message: fmt.Sprintf("Failed to create uploads directory: %v", err),
+			})
 		}
 
 		// Generate a unique filename
@@ -67,15 +126,26 @@ func ValidateAndSavePCAP(next echo.HandlerFunc) echo.HandlerFunc {
 		// Save file
 		dst, err := os.Create(dstPath)
 		if err != nil {
-			return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to save file: %v", err))
+			return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+				Status:  "error",
+				Message: fmt.Sprintf("Failed to save file: %v", err),
+			})
 		}
 		defer dst.Close()
 
 		if _, err := io.Copy(dst, src); err != nil {
-			return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to copy file: %v", err))
+			return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+				Status:  "error",
+				Message: fmt.Sprintf("Failed to copy file: %v", err),
+			})
 		}
 
-		// Attach file info to context
+		// Store hash after validation
+		hashMutex.Lock()
+		fileHashes[fileHash] = uniqueFilename
+		hashMutex.Unlock()
+
+		// Set file info in context for next handler
 		c.Set("pcapFile", PCAPFile{
 			FileHeader: file,
 			File:       src,

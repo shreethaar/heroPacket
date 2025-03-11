@@ -2,6 +2,8 @@ package handler
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"heroPacket/internal/analysis"
 	"heroPacket/internal/middleware"
@@ -9,7 +11,6 @@ import (
 	"heroPacket/view/docs"
 	"heroPacket/view/home"
 	"heroPacket/view/overview"
-	"heroPacket/view/upload"
 	"io"
 	"log"
 	"net/http"
@@ -66,7 +67,7 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 	})
 
 	// CSRF token is handled automatically by the Echo framework
-	return render(c, home.ShowHome(files))
+	return render(c, home.ShowHome(files, nil))
 }
 
 func (h *UserHandler) HandleUpload(c echo.Context) error {
@@ -78,7 +79,10 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 	file, err := c.FormFile("pcap-file")
 	if err != nil {
 		log.Printf("No file uploaded: %v", err)
-		return render(c, upload.UploadError("No file uploaded"))
+		return c.JSON(http.StatusBadRequest, home.UploadResponse{
+			Status:  "error",
+			Message: "No file uploaded",
+		})
 	}
 
 	log.Printf("Received file: %s, size: %d bytes", file.Filename, file.Size)
@@ -86,62 +90,108 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 	// Check file size
 	if file.Size > middleware.MaxPCAPSize {
 		log.Printf("File size exceeds limit: %d bytes", file.Size)
-		return render(c, upload.UploadError("File size exceeds the allowed limit"))
+		return c.JSON(http.StatusBadRequest, home.UploadResponse{
+			Status:  "error",
+			Message: "File size exceeds the allowed limit",
+		})
 	}
 
 	// Open file
 	src, err := file.Open()
 	if err != nil {
 		log.Printf("Failed to open file: %v", err)
-		return render(c, upload.UploadError(fmt.Sprintf("Failed to open file: %v", err)))
+		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Failed to open file: %v", err),
+		})
 	}
 	defer src.Close()
 
+	// Calculate MD5 hash
+	hash := md5.New()
+	tee := io.TeeReader(src, hash)
+
 	// Validate magic number
 	header := make([]byte, 24)
-	n, err := io.ReadFull(src, header)
+	n, err := io.ReadFull(tee, header)
 	if err != nil {
 		log.Printf("Failed to read file header: %v, bytes read: %d", err, n)
-		return render(c, upload.UploadError("Invalid file format"))
+		return c.JSON(http.StatusBadRequest, home.UploadResponse{
+			Status:  "error",
+			Message: "Invalid file format",
+		})
 	}
 
 	// Log the first 4 bytes for debugging
 	log.Printf("File header (first 4 bytes): [%x %x %x %x]", header[0], header[1], header[2], header[3])
 
 	// Check for standard PCAP formats
-	isPcap := bytes.Equal(header[:4], []byte(middleware.PCAPMagicLE)) ||
-		bytes.Equal(header[:4], []byte(middleware.PCAPMagicBE)) ||
-		bytes.Equal(header[:4], []byte(middleware.PCAPMagicNS))
+	isPcap := string(header[:4]) == middleware.PCAPMagicLE ||
+		string(header[:4]) == middleware.PCAPMagicBE ||
+		string(header[:4]) == middleware.PCAPMagicNS
 
 	// Check for PCAPNG format (0x0A0D0D0A)
 	isPcapNg := bytes.Equal(header[:4], []byte{0x0A, 0x0D, 0x0D, 0x0A})
 
 	if !isPcap && !isPcapNg {
 		log.Printf("Invalid PCAP signature: %x", header[:4])
-		return render(c, upload.UploadError("Invalid PCAP signature. Supported formats: PCAP, PCAPNG"))
+		return c.JSON(http.StatusBadRequest, home.UploadResponse{
+			Status:  "error",
+			Message: "Invalid PCAP signature. Supported formats: PCAP, PCAPNG",
+		})
 	}
+
+	// Read the rest of the file to complete the hash calculation
+	if _, err := io.Copy(io.Discard, tee); err != nil {
+		log.Printf("Failed to calculate file hash: %v", err)
+		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to process file",
+		})
+	}
+
+	fileHash := hex.EncodeToString(hash.Sum(nil))
+
+	// Check for duplicate file
+	h.hashMutex.RLock()
+	if existingFile, exists := h.fileHashes[fileHash]; exists {
+		h.hashMutex.RUnlock()
+		return c.JSON(http.StatusConflict, home.UploadResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Duplicate file detected. Already uploaded as: %s", existingFile),
+		})
+	}
+	h.hashMutex.RUnlock()
 
 	// Reset file reader
 	if _, err := src.Seek(0, io.SeekStart); err != nil {
 		log.Printf("Failed to reset file reader: %v", err)
-		return render(c, upload.UploadError(fmt.Sprintf("Failed to reset file reader: %v", err)))
+		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Failed to reset file reader: %v", err),
+		})
 	}
 
 	// Ensure uploads directory exists with proper permissions
 	if err := os.MkdirAll("uploads", 0755); err != nil {
 		log.Printf("Failed to create uploads directory: %v", err)
-		return render(c, upload.UploadError(fmt.Sprintf("Failed to create uploads directory: %v", err)))
+		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Failed to create uploads directory: %v", err),
+		})
 	}
 
-	// Use the original filename without timestamp prefix
-	// uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(file.Filename))
+	// Use the original filename
 	dstPath := filepath.Join("uploads", filepath.Base(file.Filename))
 
 	// Create destination file
 	dst, err := os.Create(dstPath)
 	if err != nil {
 		log.Printf("Failed to create destination file: %v", err)
-		return render(c, upload.UploadError(fmt.Sprintf("Failed to save file: %v", err)))
+		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Failed to save file: %v", err),
+		})
 	}
 	defer dst.Close()
 
@@ -149,14 +199,24 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 	bytesWritten, err := io.Copy(dst, src)
 	if err != nil {
 		log.Printf("Failed to copy file contents: %v", err)
-		return render(c, upload.UploadError(fmt.Sprintf("Failed to save file: %v", err)))
+		os.Remove(dstPath) // Clean up partial file
+		return c.JSON(http.StatusInternalServerError, home.UploadResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Failed to save file: %v", err),
+		})
 	}
+
+	// Save file hash
+	h.saveFileHash(fileHash, filepath.Base(file.Filename))
 
 	// Log success
 	log.Printf("Successfully uploaded file: %s to %s (%d bytes written)", file.Filename, dstPath, bytesWritten)
 
 	// Return success response
-	return render(c, upload.UploadSuccess(file.Filename))
+	return c.JSON(http.StatusOK, home.UploadResponse{
+		Status:  "success",
+		Message: fmt.Sprintf("Successfully uploaded %s", file.Filename),
+	})
 }
 
 // HTMX Handlers for visualizations
