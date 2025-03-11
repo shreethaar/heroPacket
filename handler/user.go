@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
     "fmt"
+    "log"
     "path/filepath"
 	"heroPacket/internal/analysis"
 	"heroPacket/internal/middleware"
@@ -80,8 +81,9 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
         return c.String(http.StatusBadRequest, "Invalid file upload")
     }
 
-    // Ensure the uploads directory exists
-    if err := os.MkdirAll("uploads", os.ModePerm); err != nil {
+    // Ensure the uploads directory exists with secure permissions
+    if err := os.MkdirAll("uploads", 0755); err != nil {
+        log.Printf("Failed to create uploads directory: %v", err)
         return c.String(http.StatusInternalServerError, "Failed to create uploads directory")
     }
 
@@ -91,12 +93,14 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 
     // Move the uploaded file to the uploads directory
     if err := os.Rename(pcapFile.Path, filePath); err != nil {
+        log.Printf("Failed to save file: %v", err)
         return c.String(http.StatusInternalServerError, "Failed to save file")
     }
 
     // Process PCAP using analysis package
     packets, err := analysis.ExtractPackets(filePath)
     if err != nil {
+        log.Printf("Failed to process PCAP file: %v", err)
         return c.String(http.StatusInternalServerError, "Failed to process PCAP file")
     }
 
@@ -104,13 +108,16 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
     sessionID := uuid.New().String()
     session := analysis.NewSession()
 
-    // Process packets concurrently
+    // Process packets concurrently with a worker pool
+    sem := make(chan struct{}, 10) // Limit concurrency to 10
     var wg sync.WaitGroup
     for _, packet := range packets {
+        sem <- struct{}{} // Acquire a slot
         wg.Add(1)
         go func(p models.Packet) {
             defer wg.Done()
             session.Process(p)
+            <-sem // Release the slot
         }(packet)
     }
     wg.Wait()
