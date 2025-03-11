@@ -1,13 +1,11 @@
 package handler
 
 import (
-	"crypto/md5"
 	"fmt"
 	"heroPacket/internal/analysis"
 	"heroPacket/view/docs"
 	"heroPacket/view/home"
 	"heroPacket/view/overview"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +13,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
-
+    "heroPacket/internal/middleware"
 	"github.com/labstack/echo/v4"
 )
 
@@ -43,70 +41,23 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 }
 
 // HandleUpload handles file upload requests
+
 func (h *UserHandler) HandleUpload(c echo.Context) error {
-	// Get the file from the request
-	file, err := c.FormFile("file")
-	if err != nil {
+	// Retrieve validated PCAP file from middleware
+	pcapFile, ok := c.Get("pcapFile").(middleware.PCAPFile)
+	if !ok {
 		return render(c, home.UploadResponseTemplate(home.UploadResponse{
 			Status:  "error",
-			Message: "No file uploaded",
+			Message: "Failed to retrieve uploaded file",
 		}))
 	}
 
-	// Validate file size (100MB limit)
-	if file.Size > 100*1024*1024 {
-		return render(c, home.UploadResponseTemplate(home.UploadResponse{
-			Status:  "error",
-			Message: "File size exceeds 100MB limit",
-		}))
-	}
-
-	// Open the uploaded file
-	src, err := file.Open()
-	if err != nil {
-		return render(c, home.UploadResponseTemplate(home.UploadResponse{
-			Status:  "error",
-			Message: "Failed to read uploaded file",
-		}))
-	}
-	defer src.Close()
-
-	// Create uploads directory if it doesn't exist
-	if err := os.MkdirAll("uploads", 0755); err != nil {
-		return render(c, home.UploadResponseTemplate(home.UploadResponse{
-			Status:  "error",
-			Message: "Failed to create uploads directory",
-		}))
-	}
-
-	// Create destination file
-	dst, err := os.Create(filepath.Join("uploads", file.Filename))
-	if err != nil {
-		return render(c, home.UploadResponseTemplate(home.UploadResponse{
-			Status:  "error",
-			Message: "Failed to create destination file",
-		}))
-	}
-	defer dst.Close()
-
-	// Calculate MD5 hash while copying
-	hash := md5.New()
-	if _, err = io.Copy(io.MultiWriter(dst, hash), src); err != nil {
-		os.Remove(dst.Name()) // Clean up on error
-		return render(c, home.UploadResponseTemplate(home.UploadResponse{
-			Status:  "error",
-			Message: "Failed to save file",
-		}))
-	}
-
-	// Convert hash to string
-	hashStr := fmt.Sprintf("%x", hash.Sum(nil))
-
-	// Check if this file has been uploaded before
+	// Save file hash to prevent duplicates
+	hashStr := pcapFile.Hash
 	h.hashMutex.RLock()
 	if existingFile, exists := h.fileHashes[hashStr]; exists {
 		h.hashMutex.RUnlock()
-		os.Remove(dst.Name()) // Remove the duplicate file
+		os.Remove(pcapFile.Path) // Remove duplicate file
 		return render(c, home.UploadResponseTemplate(home.UploadResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("This file has already been uploaded as %s", existingFile),
@@ -114,17 +65,15 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 	}
 	h.hashMutex.RUnlock()
 
-	// Save the hash mapping
-	h.saveFileHash(hashStr, file.Filename)
+	h.saveFileHash(hashStr, pcapFile.Path)
 
-	// Return success message and trigger file list update
+	// Trigger file list update
 	c.Response().Header().Set("HX-Trigger", "fileListUpdate")
 	return render(c, home.UploadResponseTemplate(home.UploadResponse{
 		Status:  "success",
 		Message: "File uploaded successfully",
 	}))
 }
-
 // HandleRefreshFiles handles the AJAX request to refresh the file list
 func (h *UserHandler) HandleRefreshFiles(c echo.Context) error {
 	files := h.getUploadedFiles()
