@@ -25,12 +25,15 @@ import (
 
 type UserHandler struct {
 	analysisCache map[string]*analysis.Session
+	fileHashes    map[string]string // Maps MD5 hash to filename
 	cacheMutex    sync.RWMutex
+	hashMutex     sync.RWMutex
 }
 
 func NewUserHandler() *UserHandler {
 	return &UserHandler{
 		analysisCache: make(map[string]*analysis.Session),
+		fileHashes:    make(map[string]string),
 	}
 }
 
@@ -39,7 +42,7 @@ func (h *UserHandler) HandleMainPage(c echo.Context) error {
 }
 
 func (h *UserHandler) HandleHomePage(c echo.Context) error {
-	csrfToken := c.Get("csrf").(string)
+	// No CSRF token needed
 
 	// Read files from uploads directory
 	files := []home.UploadedFile{}
@@ -65,7 +68,8 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 		return files[i].UploadTime.After(files[j].UploadTime)
 	})
 
-	return render(c, home.ShowHome(csrfToken, files))
+	// No CSRF token needed
+	return render(c, home.ShowHome(files))
 }
 
 func (h *UserHandler) HandleUpload(c echo.Context) error {
@@ -270,9 +274,45 @@ func (h *UserHandler) HandleAnalyze(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/overview/"+filename)
 }
 
-func (h *UserHandler) clearCacheAfter(sessionID string, duration time.Duration) {
-	time.Sleep(duration)
-	h.cacheMutex.Lock()
-	delete(h.analysisCache, sessionID)
-	h.cacheMutex.Unlock()
+// HandleDeleteFile handles the deletion of a PCAP file
+func (h *UserHandler) HandleDeleteFile(c echo.Context) error {
+	filename := c.Param("filename")
+	if filename == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No filename provided"})
+	}
+
+	// Ensure the filename is safe and within the uploads directory
+	filePath := filepath.Join("uploads", filename)
+
+	// Check if file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		log.Printf("File not found for deletion: %s", filePath)
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "File not found"})
+	}
+
+	// Delete the file
+	if err := os.Remove(filePath); err != nil {
+		log.Printf("Error deleting file %s: %v", filePath, err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete file"})
+	}
+
+	// If we have a hash for this file, remove it from our hash map
+	h.hashMutex.Lock()
+	for hash, fname := range h.fileHashes {
+		if fname == filename {
+			delete(h.fileHashes, hash)
+			break
+		}
+	}
+	h.hashMutex.Unlock()
+
+	log.Printf("Successfully deleted file: %s", filePath)
+	return c.JSON(http.StatusOK, map[string]string{"message": "File deleted successfully"})
+}
+
+// saveFileHash saves the hash to filename mapping
+func (h *UserHandler) saveFileHash(hash string, filename string) {
+	h.hashMutex.Lock()
+	defer h.hashMutex.Unlock()
+	h.fileHashes[hash] = filename
 }
