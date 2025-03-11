@@ -1,25 +1,24 @@
 package handler
 
 import (
-	"net/http"
-	"os"
-	"sort"
-	"strings"
-	"sync"
-	"time"
-    "fmt"
-    "log"
-    "path/filepath"
+	"bytes"
+	"fmt"
 	"heroPacket/internal/analysis"
 	"heroPacket/internal/middleware"
-	"heroPacket/internal/models"
 	"heroPacket/view/analytics"
 	"heroPacket/view/docs"
 	"heroPacket/view/home"
 	"heroPacket/view/overview"
 	"heroPacket/view/upload"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+	"time"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -69,78 +68,66 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 }
 
 func (h *UserHandler) HandleUpload(c echo.Context) error {
-    if c.Request().Method != http.MethodPost {
-        return c.String(http.StatusMethodNotAllowed, "Method not allowed")
-    }
+	if c.Request().Method != http.MethodPost {
+		return c.String(http.StatusMethodNotAllowed, "Method not allowed")
+	}
 
-    csrfToken := c.Get("csrf").(string)
+	// Get file from form
+	file, err := c.FormFile("pcap-file")
+	if err != nil {
+		return render(c, upload.UploadError("No file uploaded"))
+	}
 
-    // Retrieve validated file
-    pcapFile, ok := c.Get("pcapFile").(middleware.PCAPFile)
-    if !ok {
-        return c.String(http.StatusBadRequest, "Invalid file upload")
-    }
+	// Check file size
+	if file.Size > middleware.MaxPCAPSize {
+		return render(c, upload.UploadError("File size exceeds the allowed limit"))
+	}
 
-    // Ensure the uploads directory exists with secure permissions
-    if err := os.MkdirAll("uploads", 0755); err != nil {
-        log.Printf("Failed to create uploads directory: %v", err)
-        return c.String(http.StatusInternalServerError, "Failed to create uploads directory")
-    }
+	// Open file
+	src, err := file.Open()
+	if err != nil {
+		return render(c, upload.UploadError(fmt.Sprintf("Failed to open file: %v", err)))
+	}
+	defer src.Close()
 
-    // Generate a unique filename to avoid conflicts
-    uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), pcapFile.FileHeader.Filename)
-    filePath := filepath.Join("uploads", uniqueFilename)
+	// Validate magic number
+	header := make([]byte, 24)
+	if _, err := io.ReadFull(src, header); err != nil {
+		return render(c, upload.UploadError("Invalid file format"))
+	}
+	if !bytes.Equal(header[:4], []byte(middleware.PCAPMagicLE)) &&
+		!bytes.Equal(header[:4], []byte(middleware.PCAPMagicBE)) &&
+		!bytes.Equal(header[:4], []byte(middleware.PCAPMagicNS)) {
+		return render(c, upload.UploadError("Invalid PCAP file signature"))
+	}
 
-    // Move the uploaded file to the uploads directory
-    if err := os.Rename(pcapFile.Path, filePath); err != nil {
-        log.Printf("Failed to save file: %v", err)
-        return c.String(http.StatusInternalServerError, "Failed to save file")
-    }
+	// Reset file reader
+	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		return render(c, upload.UploadError(fmt.Sprintf("Failed to reset file reader: %v", err)))
+	}
 
-    // Process PCAP using analysis package
-    packets, err := analysis.ExtractPackets(filePath)
-    if err != nil {
-        log.Printf("Failed to process PCAP file: %v", err)
-        return c.String(http.StatusInternalServerError, "Failed to process PCAP file")
-    }
+	// Ensure uploads directory exists
+	if err := os.MkdirAll("uploads", 0755); err != nil {
+		return render(c, upload.UploadError(fmt.Sprintf("Failed to create uploads directory: %v", err)))
+	}
 
-    // Create analysis session
-    sessionID := uuid.New().String()
-    session := analysis.NewSession()
+	// Generate a unique filename
+	uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(file.Filename))
+	dstPath := filepath.Join("uploads", uniqueFilename)
 
-    // Process packets concurrently with a worker pool
-    sem := make(chan struct{}, 10) // Limit concurrency to 10
-    var wg sync.WaitGroup
-    for _, packet := range packets {
-        sem <- struct{}{} // Acquire a slot
-        wg.Add(1)
-        go func(p models.Packet) {
-            defer wg.Done()
-            session.Process(p)
-            <-sem // Release the slot
-        }(packet)
-    }
-    wg.Wait()
+	// Save file
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		return render(c, upload.UploadError(fmt.Sprintf("Failed to save file: %v", err)))
+	}
+	defer dst.Close()
 
-    // Store session in cache
-    h.cacheMutex.Lock()
-    h.analysisCache[sessionID] = session
-    h.cacheMutex.Unlock()
+	if _, err := io.Copy(dst, src); err != nil {
+		return render(c, upload.UploadError(fmt.Sprintf("Failed to copy file: %v", err)))
+	}
 
-    // Set cache expiration
-    go h.clearCacheAfter(sessionID, 30*time.Minute)
-
-    // Prepare view data
-    viewData := upload.ViewData{
-        SessionID:     sessionID,
-        PacketCount:   len(packets),
-        TopProtocols:  session.Protocols().Top(3),
-        TrafficStats:  session.TrafficStats(),
-        Conversations: session.Conversations().Top(5),
-        CSRFToken:     csrfToken,
-    }
-
-    return render(c, upload.Show(viewData))
+	// Return success response
+	return render(c, upload.UploadSuccess(file.Filename))
 }
 
 // HTMX Handlers for visualizations

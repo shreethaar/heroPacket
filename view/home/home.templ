@@ -45,24 +45,25 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
 <body class="bg-gray-100 min-h-screen text-gray-800">
   <!-- Top Navigation Bar -->
   <nav class="bg-indigo-700 border-b border-indigo-800 px-4 py-3 shadow-sm">
-  <div class="container mx-auto flex justify-between items-center">
-    <div class="flex items-center">
-      <h1 class="text-2xl font-bold text-white">Pcap Analyzer</h1>
+    <div class="container mx-auto flex justify-between items-center">
+      <div class="flex items-center">
+        <h1 class="text-2xl font-bold text-white">Pcap Analyzer</h1>
+      </div>
+      <div class="flex items-center space-x-4">
+        <!-- Documentation Button -->
+        <a 
+          href="/documentation"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex items-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Documentation
+        </a>
+      </div>
     </div>
-    <div class="flex items-center space-x-4">
-      <!-- Documentation Button -->
-      <a 
-        href="/documentation"
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex items-center"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-        Documentation
-      </a>
-    </div>
-  </div>
-</nav>
+  </nav>
+
   <div class="container mx-auto">
     <div class="mt-8 bg-white rounded shadow p-8">
       <!-- Main content area with welcome message -->
@@ -86,70 +87,95 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
               <p class="text-gray-600 text-sm mb-2">PCAP Files</p>
             </div>
           </div>
-        </div>
+        </div>  
         
-        <button 
-          onclick="document.getElementById('fileInput').click()"
-          class="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 mx-auto"
-        >
-        Upload
-        </button>
-      </div>
-
-      <!-- Form for file upload -->
-      <form id="uploadForm" 
+        <!-- Form for file upload with HTMX -->
+        <form id="uploadForm" 
           hx-post="/upload" 
           hx-encoding="multipart/form-data" 
           enctype="multipart/form-data"
-          method="POST"
-          class="hidden">
-        <input 
-          type="file" 
-          id="fileInput" 
-          name="pcap-file" 
-          accept=".pcap,.pcapng,.cap"
-          onchange="updateFileName(); document.getElementById('uploadForm').submit()"
-        />
-        <input type="hidden" name="_csrf" value={csrfToken}/>
-      </form>
-    </div>
+          hx-target="#uploadResponse"
+          hx-indicator="#uploadingIndicator"
+          hx-swap="outerHTML"
+        >
+          <input 
+            type="file" 
+            id="fileInput" 
+            name="pcap-file" 
+            accept=".pcap,.pcapng,.cap"
+            onchange="updateFileName()"
+            class="hidden"
+          />
+          <input type="hidden" name="_csrf" value={csrfToken}/>
+          
+          <!-- Button to trigger file input -->
+          <button 
+            type="button"
+            onclick="document.getElementById('fileInput').click()"
+            class="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 mx-auto"
+          >
+            Upload
+          </button>
+          
+          <!-- Submit button that will be clicked by JavaScript -->
+          <button 
+            type="submit" 
+            id="submitButton" 
+            class="hidden">Submit</button>
+            
+          <!-- Loading indicator -->
+          <div id="uploadingIndicator" class="htmx-indicator mt-4">
+            <div class="flex justify-center items-center">
+              <svg class="animate-spin h-5 w-5 text-blue-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Uploading...</span>
+            </div>
+          </div>
+        </form>
 
-    <!-- Previous uploads table -->
-    if len(files) > 0 {
-      <div class="mt-8 bg-white rounded shadow p-8">
-        <h3 class="text-xl font-semibold mb-4">Previous Uploads</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="px-6 py-3 rounded-l-lg">Filename</th>
-                <th class="px-6 py-3">Upload Date</th>
-                <th class="px-6 py-3">Size</th>
-                <th class="px-6 py-3 rounded-r-lg">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              for _, file := range files {
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-6 py-4">{ file.Name }</td>
-                  <td class="px-6 py-4">{ file.UploadTime.Format("2006-01-02 15:04:05") }</td>
-                  <td class="px-6 py-4">{ formatFileSize(file.Size) }</td>
-                  <td class="px-6 py-4">
-                    <button 
-                      data-analyze-button
-                      data-filename={ file.Name }
-                      class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-                    >
-                    Analyze
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+        <!-- Response container -->
+        <div id="uploadResponse" class="mt-4 text-center"></div>
       </div>
-    }
+
+      <!-- Previous uploads table -->
+      if len(files) > 0 {
+        <div class="mt-8 bg-white rounded shadow p-8">
+          <h3 class="text-xl font-semibold mb-4">Previous Uploads</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-6 py-3 rounded-l-lg">Filename</th>
+                  <th class="px-6 py-3">Upload Date</th>
+                  <th class="px-6 py-3">Size</th>
+                  <th class="px-6 py-3 rounded-r-lg">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                for _, file := range files {
+                  <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">{ file.Name }</td>
+                    <td class="px-6 py-4">{ file.UploadTime.Format("2006-01-02 15:04:05") }</td>
+                    <td class="px-6 py-4">{ formatFileSize(file.Size) }</td>
+                    <td class="px-6 py-4">
+                      <button 
+                        data-analyze-button
+                        data-filename={ file.Name }
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                      >
+                        Analyze
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
   </div>
 
   <!-- Footer -->
@@ -162,6 +188,7 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
     function updateFileName() {
       const fileInput = document.getElementById('fileInput');
       const uploadDisplay = document.getElementById('uploadDisplay');
+      const submitButton = document.getElementById('submitButton');
       
       if (fileInput.files.length > 0) {
         const fileName = fileInput.files[0].name;
@@ -173,7 +200,18 @@ templ ShowHome(csrfToken string, files []UploadedFile) {
             <p class="text-gray-800 text-sm mb-2">${fileName}</p>
           </div>
         `;
+        
+        // Trigger the form submission via HTMX
+        submitButton.click();
       }
+    }
+
+    // Function to refresh the page after successful upload
+    function refreshAfterUpload() {
+      // Wait a moment to show the success message before refreshing
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     }
 
     // Enable analyze buttons
