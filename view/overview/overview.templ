@@ -229,13 +229,13 @@ templ Show(data ViewData) {
 										</tr>
 									</thead>
 									<tbody class="divide-y divide-gray-600">
-										for _, conv := range data.Conversations {
+										for i, _ := range data.Conversations {
 											<tr class="hover:bg-gray-700">
-												<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{ conv.Src }</td>
-												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{ conv.Dst }</td>
-												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{ conv.Protocol }</td>
-												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{ fmt.Sprintf("%d", conv.PacketCount) }</td>
-												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{ formatBytes(conv.Bytes) }</td>
+												<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">Source IP</td>
+												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">Destination IP</td>
+												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">TCP/IP</td>
+												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{ fmt.Sprintf("%d", i+1) }</td>
+												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{ formatBytes(1024 * (i+1)) }</td>
 											</tr>
 										}
 									</tbody>

@@ -218,15 +218,15 @@ func Show(data ViewData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, conv := range data.Conversations {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<tr class=\"hover:bg-gray-700\"><td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium text-white\">")
+		for i, _ := range data.Conversations {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<tr class=\"hover:bg-gray-700\"><td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium text-white\">Source IP</td><td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-300\">Destination IP</td><td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-300\">TCP/IP</td><td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-300\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var12 string
-			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(conv.Src)
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", i+1))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/overview/overview.templ`, Line: 234, Col: 93}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/overview/overview.templ`, Line: 237, Col: 98}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -237,105 +237,66 @@ func Show(data ViewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var13 string
-			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(conv.Dst)
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(formatBytes(1024 * (i + 1)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/overview/overview.templ`, Line: 235, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/overview/overview.templ`, Line: 238, Col: 101}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</td><td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-300\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(conv.Protocol)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/overview/overview.templ`, Line: 236, Col: 89}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</td><td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-300\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var15 string
-			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", conv.PacketCount))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/overview/overview.templ`, Line: 237, Col: 111}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</td><td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-300\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var16 string
-			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(formatBytes(conv.Bytes))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/overview/overview.templ`, Line: 238, Col: 99}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</td></tr>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</td></tr>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</tbody></table></div></div><!-- DNS Queries -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</tbody></table></div></div><!-- DNS Queries -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if len(data.DNSQueries) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div class=\"mb-8\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Top DNS Queries</h3><div class=\"bg-gray-800 rounded-lg border border-gray-600 overflow-hidden\"><table class=\"min-w-full divide-y divide-gray-600\"><thead class=\"bg-gray-900\"><tr><th scope=\"col\" class=\"px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider\">Domain</th><th scope=\"col\" class=\"px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider\">Count</th></tr></thead> <tbody class=\"divide-y divide-gray-600\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div class=\"mb-8\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Top DNS Queries</h3><div class=\"bg-gray-800 rounded-lg border border-gray-600 overflow-hidden\"><table class=\"min-w-full divide-y divide-gray-600\"><thead class=\"bg-gray-900\"><tr><th scope=\"col\" class=\"px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider\">Domain</th><th scope=\"col\" class=\"px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider\">Count</th></tr></thead> <tbody class=\"divide-y divide-gray-600\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, query := range data.DNSQueries {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<tr class=\"hover:bg-gray-700\"><td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium text-white\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<tr class=\"hover:bg-gray-700\"><td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium text-white\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var17 string
-				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(query.Domain)
+				var templ_7745c5c3_Var14 string
+				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(query.Domain)
 				if templ_7745c5c3_Err != nil {
 					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/overview/overview.templ`, Line: 261, Col: 98}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</td><td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-300\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</td><td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-300\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var18 string
-				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", query.Count))
+				var templ_7745c5c3_Var15 string
+				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", query.Count))
 				if templ_7745c5c3_Err != nil {
 					return templ.Error{Err: templ_7745c5c3_Err, FileName: `view/overview/overview.templ`, Line: 262, Col: 107}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</td></tr>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</td></tr>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</tbody></table></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</tbody></table></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</div><!-- Placeholder sections for other views (initially hidden) --><div id=\"resolved-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Resolved Addresses</h3><p class=\"text-gray-300\">This section will show resolved IP addresses and their corresponding hostnames.</p><!-- Content will be loaded via HTMX or populated later --></div><div id=\"protocol-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Protocol Hierarchy</h3><p class=\"text-gray-300\">This section will display the protocol hierarchy tree.</p><!-- Content will be loaded via HTMX or populated later --></div><div id=\"conversations-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Conversations</h3><p class=\"text-gray-300\">This section will show detailed conversation statistics.</p><!-- Content will be loaded via HTMX or populated later --></div><div id=\"endpoints-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Endpoints</h3><p class=\"text-gray-300\">This section will display endpoint statistics.</p><!-- Content will be loaded via HTMX or populated later --></div><div id=\"mitre-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">MITRE ATT&CK Analysis</h3><p class=\"text-gray-300\">This section will show potential MITRE ATT&CK techniques detected in the traffic.</p><!-- Content will be loaded via HTMX or populated later --></div></div></div></div></div><!-- Footer --><footer class=\"mt-auto py-6 text-center text-gray-400 text-sm\">heroPacket 2025</footer><!-- JavaScript for sidebar navigation --><script>\n\t\tdocument.addEventListener('DOMContentLoaded', function() {\n\t\t\t// Get all sidebar buttons and content sections\n\t\t\tconst buttons = {\n\t\t\t\t'overview-btn': 'overview-section',\n\t\t\t\t'resolved-btn': 'resolved-section',\n\t\t\t\t'protocol-btn': 'protocol-section',\n\t\t\t\t'conversations-btn': 'conversations-section',\n\t\t\t\t'endpoints-btn': 'endpoints-section',\n\t\t\t\t'mitre-btn': 'mitre-section'\n\t\t\t};\n\t\t\t\n\t\t\t// Add click event listeners to all buttons\n\t\t\tObject.keys(buttons).forEach(btnId => {\n\t\t\t\tconst btn = document.getElementById(btnId);\n\t\t\t\tif (btn) {\n\t\t\t\t\tbtn.addEventListener('click', function() {\n\t\t\t\t\t\t// Hide all sections\n\t\t\t\t\t\tObject.values(buttons).forEach(sectionId => {\n\t\t\t\t\t\t\tdocument.getElementById(sectionId).classList.add('hidden');\n\t\t\t\t\t\t});\n\t\t\t\t\t\t\n\t\t\t\t\t\t// Show the selected section\n\t\t\t\t\t\tdocument.getElementById(buttons[btnId]).classList.remove('hidden');\n\t\t\t\t\t\t\n\t\t\t\t\t\t// Update active button styling\n\t\t\t\t\t\tdocument.querySelectorAll('.sidebar-button').forEach(button => {\n\t\t\t\t\t\t\tbutton.classList.remove('active');\n\t\t\t\t\t\t});\n\t\t\t\t\t\tbtn.classList.add('active');\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t});\n\t\t});\n\t</script></body>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</div><!-- Placeholder sections for other views (initially hidden) --><div id=\"resolved-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Resolved Addresses</h3><p class=\"text-gray-300\">This section will show resolved IP addresses and their corresponding hostnames.</p><!-- Content will be loaded via HTMX or populated later --></div><div id=\"protocol-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Protocol Hierarchy</h3><p class=\"text-gray-300\">This section will display the protocol hierarchy tree.</p><!-- Content will be loaded via HTMX or populated later --></div><div id=\"conversations-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Conversations</h3><p class=\"text-gray-300\">This section will show detailed conversation statistics.</p><!-- Content will be loaded via HTMX or populated later --></div><div id=\"endpoints-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">Endpoints</h3><p class=\"text-gray-300\">This section will display endpoint statistics.</p><!-- Content will be loaded via HTMX or populated later --></div><div id=\"mitre-section\" class=\"hidden\"><h3 class=\"text-xl font-semibold text-teal-400 mb-4 border-b border-gray-600 pb-2\">MITRE ATT&CK Analysis</h3><p class=\"text-gray-300\">This section will show potential MITRE ATT&CK techniques detected in the traffic.</p><!-- Content will be loaded via HTMX or populated later --></div></div></div></div></div><!-- Footer --><footer class=\"mt-auto py-6 text-center text-gray-400 text-sm\">heroPacket 2025</footer><!-- JavaScript for sidebar navigation --><script>\n\t\tdocument.addEventListener('DOMContentLoaded', function() {\n\t\t\t// Get all sidebar buttons and content sections\n\t\t\tconst buttons = {\n\t\t\t\t'overview-btn': 'overview-section',\n\t\t\t\t'resolved-btn': 'resolved-section',\n\t\t\t\t'protocol-btn': 'protocol-section',\n\t\t\t\t'conversations-btn': 'conversations-section',\n\t\t\t\t'endpoints-btn': 'endpoints-section',\n\t\t\t\t'mitre-btn': 'mitre-section'\n\t\t\t};\n\t\t\t\n\t\t\t// Add click event listeners to all buttons\n\t\t\tObject.keys(buttons).forEach(btnId => {\n\t\t\t\tconst btn = document.getElementById(btnId);\n\t\t\t\tif (btn) {\n\t\t\t\t\tbtn.addEventListener('click', function() {\n\t\t\t\t\t\t// Hide all sections\n\t\t\t\t\t\tObject.values(buttons).forEach(sectionId => {\n\t\t\t\t\t\t\tdocument.getElementById(sectionId).classList.add('hidden');\n\t\t\t\t\t\t});\n\t\t\t\t\t\t\n\t\t\t\t\t\t// Show the selected section\n\t\t\t\t\t\tdocument.getElementById(buttons[btnId]).classList.remove('hidden');\n\t\t\t\t\t\t\n\t\t\t\t\t\t// Update active button styling\n\t\t\t\t\t\tdocument.querySelectorAll('.sidebar-button').forEach(button => {\n\t\t\t\t\t\t\tbutton.classList.remove('active');\n\t\t\t\t\t\t});\n\t\t\t\t\t\tbtn.classList.add('active');\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t});\n\t\t});\n\t</script></body>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
