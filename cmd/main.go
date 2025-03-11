@@ -3,7 +3,7 @@ package main
 import (
 	"heroPacket/handler"
 	"log"
-    customMiddleware "heroPacket/middleware"
+    customMiddleware "heroPacket/internal/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -31,7 +31,7 @@ func main() {
 	userHandler := handler.NewUserHandler()
 	app.GET("/", userHandler.HandleMainPage)
 	//app.GET("/home", userHandler.HandleHomePage)
-	app.POST("/upload", userHandler.HandleUpload)
+	app.POST("/upload", customMiddleware.ValidateAndSavePCAP(userHandler.HandleUpload))
 	app.GET("/refresh-files", userHandler.HandleRefreshFiles)
 	app.GET("/analytics/:filename", userHandler.HandleOverview)
 	//app.GET("/docs", userHandler.HandleDocs)                  
