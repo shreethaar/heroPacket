@@ -6,6 +6,7 @@ const (
 	PCAPMagicLE = "\xd4\xc3\xb2\xa1" // Little-endian
 	PCAPMagicBE = "\xa1\xb2\xc3\xd4" // Big-endian
 	PCAPMagicNS = "\x4d\x3c\xb2\xa1" // Nanosecond precision
+	UploadsDir  = "uploads"          // Directory to store uploaded files
 )
 
 // If there's any CSRF configuration here, remove it completely

@@ -1,4 +1,5 @@
-// If there's any CSRF configuration here, remove it completely
+// If this file exists and contains CSRF configuration, remove it
+
 // Keep other configurations intact
 
 // Example:

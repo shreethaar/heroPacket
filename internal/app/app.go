@@ -5,4 +5,6 @@
 // Remove any lines like:
 // app.Use(middleware.CSRF())
 // or
-// e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{...})) 
+// e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{...}))
+
+// If this file exists and contains CSRF middleware, remove it 

@@ -1,10 +1,13 @@
 package main
+
 import (
 	"heroPacket/handler"
 	"log"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
+
 func main() {
 	app := echo.New()
 	// Middleware
@@ -16,12 +19,12 @@ func main() {
 		CookieName:   "csrf",
 		CookieMaxAge: 86400,
 		Skipper: func(c echo.Context) bool {
-			return c.Path() == "/static/*"
+			return c.Path() == "/static/*" || c.Path() == "/upload" // Skip CSRF for upload endpoint
 		},
 	}))
 	// Routes
 	userHandler := handler.NewUserHandler()
-	app.GET("/", userHandler.HandleHomePage)         // Changed to show dashboard on root
+	app.GET("/", userHandler.HandleHomePage) // Changed to show dashboard on root
 	//app.GET("/welcome", userHandler.HandleMainPage)  // Moved welcome page to /welcome
 	app.POST("/upload", userHandler.HandleUpload)
 	// Analysis routes

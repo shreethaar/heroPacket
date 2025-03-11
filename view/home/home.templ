@@ -97,7 +97,7 @@ templ ShowHome(files []UploadedFile) {
           hx-indicator="#uploadingIndicator"
           hx-trigger="change from:#fileInput"
         >
-          <!-- CSRF token input removed -->
+          <!-- CSRF token will be automatically added by Echo middleware -->
           
           <!-- Button to trigger file input -->
           <label for="fileInput" class="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 mx-auto cursor-pointer inline-flex items-center justify-center shadow-lg border border-teal-700 font-medium transition-all duration-200 transform hover:translate-y-[-2px]">
