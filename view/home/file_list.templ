@@ -31,9 +31,8 @@ templ FileListTemplate(files []UploadedFile) {
                   Analyze
                 </a>
                 <button 
-                  hx-delete={ "/delete-file/" + file.Name }
-                  hx-confirm={ "Are you sure you want to delete " + file.Name + "?" }
-                  hx-target="#uploadResponse"
+                  hx-get={ "/confirm-delete/" + file.Name }
+                  hx-target="#deleteConfirmation"
                   hx-swap="innerHTML"
                   class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-md border border-red-700 font-medium inline-flex items-center justify-center"
                 >
@@ -48,5 +47,9 @@ templ FileListTemplate(files []UploadedFile) {
         </tbody>
       </table>
     </div>
+  </div>
+
+  <!-- Delete confirmation dialog -->
+  <div id="deleteConfirmation" class="fixed inset-0 bg-black bg-opacity-50 hidden">
   </div>
 }
