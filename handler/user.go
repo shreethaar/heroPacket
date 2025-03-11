@@ -18,7 +18,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/labstack/echo/v4"
 )
@@ -134,9 +133,9 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 		return render(c, upload.UploadError(fmt.Sprintf("Failed to create uploads directory: %v", err)))
 	}
 
-	// Generate a unique filename
-	uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(file.Filename))
-	dstPath := filepath.Join("uploads", uniqueFilename)
+	// Use the original filename without timestamp prefix
+	// uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(file.Filename))
+	dstPath := filepath.Join("uploads", filepath.Base(file.Filename))
 
 	// Create destination file
 	dst, err := os.Create(dstPath)

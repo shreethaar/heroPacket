@@ -19,7 +19,7 @@ func main() {
 		CookieName:   "csrf",
 		CookieMaxAge: 86400,
 		Skipper: func(c echo.Context) bool {
-			return c.Path() == "/static/*" || c.Path() == "/upload" // Skip CSRF for upload endpoint
+			return c.Path() == "/static/*" || c.Path() == "/upload" || c.Request().Method == "DELETE" // Skip CSRF for upload endpoint and DELETE requests
 		},
 	}))
 	// Routes
@@ -36,6 +36,8 @@ func main() {
 	app.GET("/analysis/traffic-timeline/:filename", userHandler.TrafficTimeline)
 	// Documentation route
 	app.GET("/docs", userHandler.HandleDocs)
+	// Delete route
+	app.DELETE("/delete/:filename", userHandler.HandleDeleteFile)
 	// Start server
 	log.Println("Server starting on :9999")
 	app.Logger.Fatal(app.Start(":9999"))
