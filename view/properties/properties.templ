@@ -68,7 +68,7 @@ templ Show(data ViewData) {
 				</div>
 				
 				<div class="mt-6">
-					<a href="/analytics/{ data.Filename }" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+					<a href={ templ.SafeURL("/analytics/" + data.Filename) } class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
 						View Analytics
 					</a>
 				</div>
