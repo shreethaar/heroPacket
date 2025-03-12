@@ -3,93 +3,102 @@ package analysis
 import (
 	"crypto/md5"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"fmt"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/pcap"
 	"io"
 	"os"
+	"sync"
 	"time"
+
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/pcap"
 )
 
 type CaptureProperties struct {
-	FileName       string   `json:"file_name"`
-	FileSize       int64    `json:"file_size"`
-	MD5Hash        string   `json:"md5_hash"`
-	SHA256Hash     string   `json:"sha256_hash"`
-	FirstCaptured  string   `json:"first_captured"`
-	LastCaptured   string   `json:"last_captured"`
-	InterfacesUsed []string `json:"interfaces_used"`
+	FileName     string    `json:"file_name"`
+	FileSize     int64     `json:"file_size"`
+	MD5Hash      string    `json:"md5_hash"`
+	SHA256Hash   string    `json:"sha256_hash"`
+	FirstPacket  time.Time `json:"first_packet_utc"`
+	LastPacket   time.Time `json:"last_packet_utc"`
+	Interfaces   []string  `json:"interfaces"`
 }
 
-func AnalyzePcap(filePath string) (string, error) {
+func ComputeHashes(filePath string) (string, string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer file.Close()
 
-	fileInfo, err := file.Stat()
+	md5Hash := md5.New()
+	sha256Hash := sha256.New()
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		io.Copy(md5Hash, file)
+		wg.Done()
+	}()
+
+	file.Seek(0, 0) // Reset file pointer for the second hash computation
+
+	go func() {
+		io.Copy(sha256Hash, file)
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	md5Str := hex.EncodeToString(md5Hash.Sum(nil))
+	sha256Str := hex.EncodeToString(sha256Hash.Sum(nil))
+
+	return md5Str, sha256Str, nil
+}
+
+func GetCaptureProperties(filePath string) (string, error) {
+	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		return "", err
 	}
 
-	md5Hash, sha256Hash, err := computeHashes(file)
+	md5Hash, sha256Hash, err := ComputeHashes(filePath)
 	if err != nil {
 		return "", err
 	}
 
-	interfaces, firstCaptured, lastCaptured, err := parsePcap(filePath)
+	handle, err := pcap.OpenOffline(filePath)
 	if err != nil {
 		return "", err
 	}
+	defer handle.Close()
 
-	properties := CaptureProperties{
-		FileName:       fileInfo.Name(),
-		FileSize:       fileInfo.Size(),
-		MD5Hash:        md5Hash,
-		SHA256Hash:     sha256Hash,
-		FirstCaptured:  firstCaptured,
-		LastCaptured:   lastCaptured,
-		InterfacesUsed: interfaces,
+	firstPacketTime, lastPacketTime := time.Time{}, time.Time{}
+	interfaces := []string{handle.LinkType().String()}
+
+	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+	for packet := range packetSource.Packets() {
+		if firstPacketTime.IsZero() {
+			firstPacketTime = packet.Metadata().Timestamp.UTC()
+		}
+		lastPacketTime = packet.Metadata().Timestamp.UTC()
 	}
 
-	jsonData, err := json.MarshalIndent(properties, "", "  ")
+	captureProps := CaptureProperties{
+		FileName:    fileInfo.Name(),
+		FileSize:    fileInfo.Size(),
+		MD5Hash:     md5Hash,
+		SHA256Hash:  sha256Hash,
+		FirstPacket: firstPacketTime,
+		LastPacket:  lastPacketTime,
+		Interfaces:  interfaces,
+	}
+
+	jsonData, err := json.MarshalIndent(captureProps, "", "  ")
 	if err != nil {
 		return "", err
 	}
 
 	return string(jsonData), nil
-}
-
-func computeHashes(file *os.File) (string, string, error) {
-	md5Hash := md5.New()
-	sha256Hash := sha256.New()
-	if _, err := io.Copy(io.MultiWriter(md5Hash, sha256Hash), file); err != nil {
-		return "", "", err
-	}
-	return fmt.Sprintf("%x", md5Hash.Sum(nil)), fmt.Sprintf("%x", sha256Hash.Sum(nil)), nil
-}
-
-func parsePcap(filePath string) ([]string, string, string, error) {
-	handle, err := pcap.OpenOffline(filePath)
-	if err != nil {
-		return nil, "", "", err
-	}
-	defer handle.Close()
-
-	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-	var firstTime, lastTime time.Time
-	var interfaces []string
-
-	for packet := range packetSource.Packets() {
-		if firstTime.IsZero() {
-			firstTime = packet.Metadata().Timestamp.UTC()
-		}
-		lastTime = packet.Metadata().Timestamp.UTC()
-	}
-
-	interfaces = append(interfaces, handle.LinkType().String())
-
-	return interfaces, firstTime.Format(time.RFC3339), lastTime.Format(time.RFC3339), nil
 }
