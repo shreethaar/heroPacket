@@ -6,6 +6,7 @@ import (
 	"heroPacket/view/docs"
 	"heroPacket/view/home"
 	"heroPacket/view/overview"
+    "heroPacket/view/properties"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +18,7 @@ import (
     "io"
     "crypto/md5"
     "github.com/labstack/echo/v4"
+    "encoding/json"
 )
 
 type UserHandler struct {
@@ -370,7 +372,80 @@ func (h *UserHandler) TrafficTimeline(c echo.Context) error {
 	return session.TrafficTimeline().Render(c.Response().Writer)
 }
 
-func fileExists(filePath string) bool {
-	_, err := os.Stat(filePath)
-	return err == nil
+func (h *UserHandler) HandlePropertiesIndex(c echo.Context) error {
+	// Get all files in the uploads directory
+	files, err := os.ReadDir("uploads")
+	if err != nil {
+		return render(c, properties.Layout(nil, ""))
+	}
+	
+	// Extract filenames
+	var filenames []string
+	for _, file := range files {
+		if !file.IsDir() {
+			filenames = append(filenames, file.Name())
+		}
+	}
+	
+	return render(c, properties.Layout(filenames, ""))
+}
+
+func (h *UserHandler) HandleProperties(c echo.Context) error {
+	filename := c.Param("filename")
+	
+	// If no filename provided, return empty template
+	if filename == "" {
+		return c.String(http.StatusBadRequest, "Filename is required")
+	}
+	
+	// Construct the file path
+	filePath := "uploads/" + filename
+	
+	// Check if file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return render(c, properties.Show(properties.ViewData{
+			Error: "File not found",
+		}))
+	}
+	
+	// Get capture properties
+	propertiesJSON, err := analysis.GetCaptureProperties(filePath)
+	if err != nil {
+		return render(c, properties.Show(properties.ViewData{
+			Error: "Failed to get capture properties: " + err.Error(),
+		}))
+	}
+	
+	// Parse JSON into CaptureProperties struct
+	var captureProps analysis.CaptureProperties
+	if err := json.Unmarshal([]byte(propertiesJSON), &captureProps); err != nil {
+		return render(c, properties.Show(properties.ViewData{
+			Error: "Failed to parse properties data",
+		}))
+	}
+	
+	// If this is an HTMX request, render only the Show component
+	if c.Request().Header.Get("HX-Request") == "true" {
+		return render(c, properties.Show(properties.ViewData{
+			Filename:   filename,
+			Properties: &captureProps,
+		}))
+	}
+	
+	// Otherwise, get all files and render the full layout
+	files, err := os.ReadDir("uploads")
+	if err != nil {
+		files = []os.DirEntry{}
+	}
+	
+	// Extract filenames
+	var filenames []string
+	for _, file := range files {
+		if !file.IsDir() {
+			filenames = append(filenames, file.Name())
+		}
+	}
+	
+	// Render the full layout with the selected file highlighted
+	return render(c, properties.Layout(filenames, filename))
 }

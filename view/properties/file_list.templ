@@ -1,0 +1,65 @@
+package properties
+
+templ FileList(files []string, selectedFile string) {
+	<div class="mb-6">
+		<h2 class="text-lg font-semibold mb-2">Available Files</h2>
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+			for _, file := range files {
+				if file == selectedFile {
+					<div 
+						class="border p-2 rounded cursor-pointer hover:bg-gray-100 bg-blue-100 border-blue-500"
+						hx-get={"/properties/" + file}
+						hx-target="#properties-container"
+						hx-swap="innerHTML"
+					>
+						{ file }
+					</div>
+				} else {
+					<div 
+						class="border p-2 rounded cursor-pointer hover:bg-gray-100"
+						hx-get={"/properties/" + file}
+						hx-target="#properties-container"
+						hx-swap="innerHTML"
+					>
+						{ file }
+					</div>
+				}
+			}
+		</div>
+	</div>
+}
+
+templ Layout(files []string, selectedFile string) {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>PCAP Analyzer - Properties</title>
+		<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+		<script src="https://unpkg.com/htmx.org@1.9.4"></script>
+	</head>
+	<body class="bg-gray-50 min-h-screen">
+		<nav class="bg-gray-800 text-white p-4">
+			<div class="container mx-auto flex justify-between items-center">
+				<a href="/" class="text-xl font-bold">PCAP Analyzer</a>
+				<div class="space-x-4">
+					<a href="/" class="hover:text-gray-300">Home</a>
+					<a href="/analytics" class="hover:text-gray-300">Analytics</a>
+					<a href="/properties" class="hover:text-gray-300 border-b-2 border-white">Properties</a>
+				</div>
+			</div>
+		</nav>
+		
+		<main class="container mx-auto p-4">
+			@FileList(files, selectedFile)
+			
+			<div id="properties-container">
+				<div class="bg-white shadow-md rounded-lg p-6">
+					<p class="text-center text-gray-500">Select a file to view its properties</p>
+				</div>
+			</div>
+		</main>
+	</body>
+	</html>
+}

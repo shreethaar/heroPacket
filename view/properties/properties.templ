@@ -1,0 +1,119 @@
+package properties
+
+import (
+	"time"
+	"strconv"
+	"heroPacket/internal/analysis"
+)
+
+type ViewData struct {
+	Filename    string
+	Properties  *analysis.CaptureProperties
+	Error       string
+}
+
+templ Show(data ViewData) {
+	<div class="container mx-auto p-4">
+		<h1 class="text-2xl font-bold mb-4">Capture Properties</h1>
+		
+		if data.Error != "" {
+			<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+				<p>{ data.Error }</p>
+			</div>
+		}
+		
+		if data.Properties != nil {
+			<div class="bg-white shadow-md rounded-lg p-6">
+				<h2 class="text-xl font-semibold mb-4">{ data.Properties.FileName }</h2>
+				
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div class="border-b pb-2">
+						<span class="font-semibold">File Size:</span> 
+						{ formatFileSize(data.Properties.FileSize) }
+					</div>
+					
+					<div class="border-b pb-2">
+						<span class="font-semibold">First Packet:</span> 
+						{ data.Properties.FirstPacket.Format("2006-01-02 15:04:05 MST") }
+					</div>
+					
+					<div class="border-b pb-2">
+						<span class="font-semibold">Last Packet:</span> 
+						{ data.Properties.LastPacket.Format("2006-01-02 15:04:05 MST") }
+					</div>
+					
+					<div class="border-b pb-2">
+						<span class="font-semibold">Duration:</span> 
+						{ formatDuration(data.Properties.LastPacket.Sub(data.Properties.FirstPacket)) }
+					</div>
+					
+					<div class="border-b pb-2 md:col-span-2">
+						<span class="font-semibold">MD5 Hash:</span> 
+						<code class="bg-gray-100 px-1 py-0.5 rounded">{ data.Properties.MD5Hash }</code>
+					</div>
+					
+					<div class="border-b pb-2 md:col-span-2">
+						<span class="font-semibold">SHA256 Hash:</span> 
+						<code class="bg-gray-100 px-1 py-0.5 rounded">{ data.Properties.SHA256Hash }</code>
+					</div>
+					
+					<div class="border-b pb-2 md:col-span-2">
+						<span class="font-semibold">Interfaces:</span>
+						<ul class="list-disc list-inside ml-4 mt-1">
+							for _, iface := range data.Properties.Interfaces {
+								<li>{ iface }</li>
+							}
+						</ul>
+					</div>
+				</div>
+				
+				<div class="mt-6">
+					<a href="/analytics/{ data.Filename }" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+						View Analytics
+					</a>
+				</div>
+			</div>
+		} else {
+			<div class="bg-gray-100 p-6 rounded-lg text-center">
+				<p>Select a file to view properties</p>
+			</div>
+		}
+	</div>
+}
+
+// Function to format file size in human-readable format
+func formatFileSize(size int64) string {
+	const (
+		B  = 1
+		KB = 1024 * B
+		MB = 1024 * KB
+		GB = 1024 * MB
+	)
+	
+	switch {
+	case size >= GB:
+		return strconv.FormatFloat(float64(size)/float64(GB), 'f', 2, 64) + " GB"
+	case size >= MB:
+		return strconv.FormatFloat(float64(size)/float64(MB), 'f', 2, 64) + " MB"
+	case size >= KB:
+		return strconv.FormatFloat(float64(size)/float64(KB), 'f', 2, 64) + " KB"
+	default:
+		return strconv.FormatInt(size, 10) + " bytes"
+	}
+}
+
+// Function to format duration in human-readable format
+func formatDuration(d time.Duration) string {
+	seconds := int(d.Seconds())
+	hours := seconds / 3600
+	seconds %= 3600
+	minutes := seconds / 60
+	seconds %= 60
+	
+	if hours > 0 {
+		return strconv.Itoa(hours) + "h " + strconv.Itoa(minutes) + "m " + strconv.Itoa(seconds) + "s"
+	} else if minutes > 0 {
+		return strconv.Itoa(minutes) + "m " + strconv.Itoa(seconds) + "s"
+	}
+	return strconv.Itoa(seconds) + "s"
+}
