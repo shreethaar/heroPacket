@@ -35,6 +35,7 @@ func main() {
 	app.GET("/analytics/:filename", userHandler.HandleOverview)
     app.GET("/properties", userHandler.HandlePropertiesIndex)
     app.GET("/properties/:filename", userHandler.HandleProperties)
+    app.GET("/api/geoip/:filename", userHandler.HandleGeoIP)
 	//app.GET("/docs", userHandler.HandleDocs)                  
 	//app.GET("/protocol-chart/:sessionID", userHandler.ProtocolChart)
 	//app.GET("/traffic-timeline/:sessionID", userHandler.TrafficTimeline)

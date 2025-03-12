@@ -7,7 +7,8 @@ import (
 	"heroPacket/view/home"
 	"heroPacket/view/overview"
     "heroPacket/view/properties"
-	"log"
+	"heroPacket/api"
+    "log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -449,3 +450,32 @@ func (h *UserHandler) HandleProperties(c echo.Context) error {
 	// Render the full layout with the selected file highlighted
 	return render(c, properties.Layout(filenames, filename))
 }
+
+
+func (h *UserHandler) HandleGeoIP(c echo.Context) error {
+	filename := c.Param("filename")
+
+	// If no filename is provided, return an error
+	if filename == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Filename is required"})
+	}
+
+	// Construct the file path
+	filePath := "uploads/" + filename
+
+	// Check if the file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "File not found"})
+	}
+
+	// Process PCAP and fetch geolocation data
+	geoData, err := api.ProcessPCAPAndFetchGeoInfo(filePath)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to process PCAP: " + err.Error()})
+	}
+
+	// Return the geolocation data as JSON
+	return c.JSON(http.StatusOK, geoData)
+}
+
+
