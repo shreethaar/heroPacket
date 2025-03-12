@@ -3,7 +3,6 @@ package main
 import (
 	"heroPacket/handler"
 	"log"
-    customMiddleware "heroPacket/internal/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -26,13 +25,12 @@ func main() {
 
 	// Configure body limit for file uploads (100MB)
 	app.Use(middleware.BodyLimit("100MB"))
-
-	// Routes
+// Routes
 	userHandler := handler.NewUserHandler()
 	app.GET("/", userHandler.HandleMainPage)
 	//app.GET("/home", userHandler.HandleHomePage)
 	//app.POST("/upload", customMiddleware.ValidateAndSavePCAP(userHandler.HandleUpload))
-	app.POST("/upload", userHandler.HandleUpload, customMiddleware.ValidateAndSavePCAP)
+	app.POST("/upload", userHandler.HandleUpload)
 	app.GET("/refresh-files", userHandler.HandleRefreshFiles)
 	app.GET("/analytics/:filename", userHandler.HandleOverview)
 	//app.GET("/docs", userHandler.HandleDocs)                  

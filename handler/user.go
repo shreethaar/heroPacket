@@ -13,8 +13,10 @@ import (
 	"sort"
 	"strings"
 	"sync"
-    "heroPacket/internal/middleware"
-	"github.com/labstack/echo/v4"
+	"bytes"
+    "io"
+    "crypto/md5"
+    "github.com/labstack/echo/v4"
 )
 
 type UserHandler struct {
@@ -41,23 +43,107 @@ func (h *UserHandler) HandleHomePage(c echo.Context) error {
 }
 
 // HandleUpload handles file upload requests
-
 func (h *UserHandler) HandleUpload(c echo.Context) error {
-	// Retrieve validated PCAP file from middleware
-	pcapFile, ok := c.Get("pcapFile").(middleware.PCAPFile)
-	if !ok {
+	// Get file
+	file, err := c.FormFile("file")
+	if err != nil {
+		log.Println("DEBUG: No file uploaded:", err)
 		return render(c, home.UploadResponseTemplate(home.UploadResponse{
 			Status:  "error",
-			Message: "Failed to retrieve uploaded file",
+			Message: "No file uploaded",
 		}))
 	}
 
-	// Save file hash to prevent duplicates
-	hashStr := pcapFile.Hash
+	// Validate file size
+	if file.Size > 100*1024*1024 {
+		log.Println("DEBUG: File too large:", file.Size)
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "File size exceeds 100MB limit",
+		}))
+	}
+
+	// Open file
+	src, err := file.Open()
+	if err != nil {
+		log.Println("DEBUG: Failed to open file:", err)
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to read file",
+		}))
+	}
+	defer src.Close()
+
+	// Read first 14 bytes
+	header := make([]byte, 14)
+	_, err = src.Read(header)
+	if err != nil {
+		log.Println("DEBUG: Failed to read file header:", err)
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to read file header",
+		}))
+	}
+
+	// Validate PCAP-NG format
+	if !bytes.Equal(header[:4], []byte{0x0a, 0x0d, 0x0d, 0x0a}) || 
+	   !bytes.Equal(header[8:12], []byte{0x4d, 0x3c, 0x2b, 0x1a}) {
+		log.Println("DEBUG: Invalid PCAP-NG magic number")
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Invalid file format. Expected a PCAP file.",
+		}))
+	}
+
+	// Reset file pointer before saving
+	_, err = src.Seek(0, io.SeekStart)
+	if err != nil {
+		log.Println("DEBUG: Failed to reset file pointer:", err)
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to reset file pointer",
+		}))
+	}
+
+	// Create uploads directory
+	if err := os.MkdirAll("uploads", 0755); err != nil {
+		log.Println("DEBUG: Failed to create uploads directory:", err)
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to create uploads directory",
+		}))
+	}
+
+	// Compute MD5 hash and save the file
+	dstPath := filepath.Join("uploads", file.Filename)
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		log.Println("DEBUG: Failed to create destination file:", err)
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to create destination file",
+		}))
+	}
+	defer dst.Close()
+
+	hash := md5.New()
+	if _, err = io.Copy(io.MultiWriter(dst, hash), src); err != nil {
+		os.Remove(dstPath) // Cleanup on error
+		log.Println("DEBUG: Failed to save file:", err)
+		return render(c, home.UploadResponseTemplate(home.UploadResponse{
+			Status:  "error",
+			Message: "Failed to save file",
+		}))
+	}
+
+	// Convert hash to string
+	hashStr := fmt.Sprintf("%x", hash.Sum(nil))
+
+	// Check for duplicate file
 	h.hashMutex.RLock()
 	if existingFile, exists := h.fileHashes[hashStr]; exists {
 		h.hashMutex.RUnlock()
-		os.Remove(pcapFile.Path) // Remove duplicate file
+		os.Remove(dstPath) // Remove duplicate file
 		return render(c, home.UploadResponseTemplate(home.UploadResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("This file has already been uploaded as %s", filepath.Base(existingFile)),
@@ -65,7 +151,8 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 	}
 	h.hashMutex.RUnlock()
 
-	h.saveFileHash(hashStr, pcapFile.Path)
+	// Save file hash
+	h.saveFileHash(hashStr, dstPath)
 
 	// Trigger file list update
 	c.Response().Header().Set("HX-Trigger", "fileListUpdate")
@@ -74,6 +161,9 @@ func (h *UserHandler) HandleUpload(c echo.Context) error {
 		Message: "File uploaded successfully",
 	}))
 }
+
+
+
 // HandleRefreshFiles handles the AJAX request to refresh the file list
 func (h *UserHandler) HandleRefreshFiles(c echo.Context) error {
 	files := h.getUploadedFiles()
